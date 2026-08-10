@@ -1,5 +1,10 @@
+import pathlib
 import numpy as np, matplotlib
 matplotlib.use("Agg")
+
+# Resolve the figure destination from this file, not the working directory, so
+# the script writes tex/figures/costcurve.pdf wherever it is invoked from.
+OUT = pathlib.Path(__file__).resolve().parents[2] / "tex" / "figures" / "costcurve.pdf"
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 rcParams.update({"font.family":"serif","font.size":8,"axes.linewidth":.6})
@@ -22,5 +27,7 @@ ax.set_xlabel("nodes per metro $n$"); ax.set_ylabel("cost rate $C(n)$ (index)")
 ax.set_xlim(0,40); ax.set_ylim(40,170)
 ax.legend(frameon=False,fontsize=6.5,loc="upper right",title=r"zone-demand correlation",title_fontsize=6.5)
 ax.spines[['top','right']].set_visible(False)
-fig.tight_layout(pad=.3); fig.savefig("costcurve.pdf")
-print("ok")
+fig.tight_layout(pad=.3)
+OUT.parent.mkdir(parents=True, exist_ok=True)
+fig.savefig(OUT)
+print(f"ok -> {OUT}")
