@@ -1,0 +1,55 @@
+name: Build ParaTwin installers
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest        # Apple Silicon .dmg
+            args: "--target aarch64-apple-darwin"
+          - platform: macos-latest        # Intel .dmg
+            args: "--target x86_64-apple-darwin"
+          - platform: windows-latest      # NSIS .exe installer + .msi
+            args: ""
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Install LLVM (Windows, for RocksDB)
+        if: matrix.platform == 'windows-latest'
+        run: choco install llvm -y
+
+      - name: Install frontend deps
+        working-directory: web
+        run: npm ci || npm install
+
+      - name: Build Tauri app + installers
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: .
+          args: ${{ matrix.args }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: paratwin-${{ matrix.platform }}-${{ strategy.job-index }}
+          path: |
+            target/**/release/bundle/dmg/*.dmg
+            target/**/release/bundle/nsis/*.exe
+            target/**/release/bundle/msi/*.msi

@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paragon: #215aa9;
+}
+
+body {
+  @apply bg-slate-100 text-slate-800 antialiased;
+}
+
+.card {
+  @apply bg-white rounded-xl shadow-sm border border-slate-200 p-5;
+}
+
+.btn {
+  @apply inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+}
+.btn-primary {
+  @apply btn bg-paragon-500 text-white hover:bg-paragon-600;
+}
+.btn-ghost {
+  @apply btn bg-white border border-slate-300 text-slate-700 hover:border-paragon-400 hover:text-paragon-600;
+}
+.btn-danger {
+  @apply btn bg-white border border-red-200 text-red-600 hover:bg-red-50;
+}
+
+.input {
+  @apply w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-paragon-300 focus:border-paragon-400 bg-white;
+}
+.label {
+  @apply block text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1;
+}
+
+.stat-value {
+  @apply text-2xl font-bold text-paragon-700;
+}
+.stat-label {
+  @apply text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+}
+
+.table-base {
+  @apply w-full text-sm;
+}
+.table-base th {
+  @apply text-left text-[11px] uppercase tracking-wide text-slate-500 font-semibold py-2 border-b border-slate-200;
+}
+.table-base td {
+  @apply py-2 border-b border-slate-100;
+}
+
+/* ---------- business explainers ---------- */
+.info-dot {
+  @apply relative inline-flex items-center justify-center w-3.5 h-3.5 rounded-full
+    bg-paragon-100 text-paragon-600 text-[9px] font-bold cursor-help select-none
+    border border-paragon-300 normal-case;
+}
+.info-pop {
+  @apply invisible opacity-0 absolute left-1/2 bottom-full z-50 w-64 -translate-x-1/2 mb-2
+    rounded-lg bg-paragon-900 text-white text-[11px] font-normal normal-case tracking-normal
+    px-3 py-2 leading-relaxed shadow-lg transition-opacity duration-150 text-left;
+}
+.info-dot:hover .info-pop,
+.info-dot:focus .info-pop {
+  @apply visible opacity-100;
+}
+
+/* journey stage cards */
+.stage-btn {
+  @apply transition-all duration-150 cursor-pointer;
+}
+.stage-btn:hover {
+  filter: brightness(1.06);
+}

@@ -1,0 +1,32 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# Tauri build output
+src-tauri/target/
+src-tauri/gen/
+
+# Local data stores (SQLite scenarios/runs, RocksDB frame store)
+*.sqlite
+*.sqlite-journal
+*.db
+/data/
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
