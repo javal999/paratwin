@@ -1,0 +1,53 @@
+\section{ParaExpress Network Architecture}\label{sec:arch}
+
+\subsection{Design Principles}
+The structural results translate into six architecture principles. The sixth is new in Revision~5.
+
+\begin{itemize}
+\item \textbf{P-1 (Two speeds, one network).} Keep the existing NDC $\to$ DC backbone as the \emph{replenishment} network; superimpose a hyperlocal \emph{fulfillment} tier ($\mathcal{F}$) sized per metro by the two-stage procedure of Section~\ref{sec:arch}-\ref{sec:sizing}.
+\item \textbf{P-2 (Stores first, dark MFCs second).} Activate Exagon consignment stores as fulfillment nodes in greedy marginal-\emph{contribution} order (Corollary~\ref{cor:stores}), subject to the contribution floor; open dedicated MFCs only where store coverage leaves profitable white space or where node throughput binds.
+\item \textbf{P-3 (Category-dense assortment).} Stock each node with its catchment's top-value beauty assortment (Theorem~\ref{thm:assortment}), subject to the order-fill constraint of Proposition~\ref{prop:orderfill}. Beauty SKUs are small, high-margin and non-perishable. \OPEN{slot arithmetic validating the minimum back-room footprint that holds one week of instant demand at the 400--600 SKU dark-MFC assortment, from Heron item-master dimensions; Revision~4 asserted 20--40\,m$^2$, which matches no format in Table~\ref{tab:formats}}{Head of Platform R\&D}{Phase 1 gate}
+\item \textbf{P-4 (Channel-agnostic fulfillment).} The consumer may order on Shopee, TikTok Shop/Tokopedia, brand.com or WhatsApp; the Order Routing Engine solves (P3) identically for all channels (Theorem~\ref{thm:routing}), making the delivery promise a property of ParaExpress, not of the marketplace.
+\item \textbf{P-5 (Partner the commodity, own the algorithm).} Mid-mile trucking (MOSTRANS) and last-mile riders (Grab, GoSend) are rented capacity; the routing, inventory, promise and twin logic---where the margin and the data live---remain ParagonCorp IP.
+\item \textbf{P-6 (No unbounded degradation).} $^{\mathrm{R5}}$ Every component on the order path has a specified behaviour when its dependency is unavailable, and that behaviour is a promise downgrade, never a stall. A component with no stated degraded mode is not production-ready. This principle is what Section~\ref{sec:solution} implements for the Virtual Inventory Service, the ADR cache and the courier rate shop.
+\end{itemize}
+
+\subsection{Target Network Topology}
+The network operates three tiers.
+
+\textbf{Tier 0 --- NDC (Jakarta) and B2C DC (Tegal).} National stock pool; PX3 (next-day/standard marketplace) orders continue to ship from Tegal unchanged.
+
+\textbf{Tier 1 --- Regional hubs.} Existing B2B DCs (Bogor, Bandung, Solo, Makassar, \dots) gain a small ParaExpress cross-dock function: they receive weekly line-hauls from the NDC and stage daily or every-other-day replenishment waves to the fulfillment tier via mid-mile partners.
+
+\textbf{Tier 2 --- Fulfillment tier $\mathcal{F}$.} Per metro: (a) \emph{store nodes}, selected consignment doors (cosmetic stores, minimarkets, pharmacies) holding a ParaExpress-reserved forward stock of 150--300 SKUs in $\le5$\,m$^2$; (b) \emph{dark MFCs}, 150--300\,m$^2$ leased spaces in low-rent but road-central locations holding 400--600 SKUs; (c) \emph{flagship MFCs} (one per major metro) with 800--1,200 SKUs acting as intra-metro backup for the long tail.
+
+\subsection{$^{\mathrm{R5}}$ Sizing the Fulfillment Tier}\label{sec:sizing}
+
+Revision~4 wrote the sizing rule as $\max(n_{\min},n^\star)$ without stating which fixed cost enters $n^\star$, in a network whose node formats have fixed costs differing by two orders of magnitude (Table~\ref{tab:formats}). A single $n^\star$ is not defined for a heterogeneous population. The corrected procedure is two-stage and is the rule ParaTwin executes:
+
+\begin{enumerate}
+\item \textbf{Coverage stage.} Activate store nodes in greedy marginal-contribution order (Corollary~\ref{cor:stores}, with the contribution floor), until either the candidate pool is exhausted or marginal contribution falls below the floor. This stage has $c^{\mathrm{fix}}\approx0$ and is governed by coverage and throughput, not by Theorem~\ref{thm:nodecount}. Let $n_0$ be the resulting node count and $A_0$ the residual area not covered within $R^\star$.
+\item \textbf{Capacity stage.} Apply Theorem~\ref{thm:nodecount} to the \emph{dark-MFC layer only}, with $F$ the dark-MFC fixed cost rate and demand restricted to residual and overflow volume, to obtain $n^\star_{\mathrm{mfc}}$. Apply the floor $n_{\min}$ of Proposition~\ref{prop:radius} to the \emph{combined} tier, since coverage is a property of the whole population: the tier must satisfy $n_0+n_{\mathrm{mfc}}\ge n_{\min}$.
+\item \textbf{Deployed count.} $n_{\mathrm{mfc}}=\max\bigl(n^\star_{\mathrm{mfc}},\,n_{\min}-n_0\bigr)^{+}$, and the design is rejected if the resulting network cannot clear the contribution floor in aggregate.
+\end{enumerate}
+
+Both stages are certified in ParaTwin against the capacitated objective before any node opens, because Section~\ref{sec:structural}-\ref{sec:capacitated} removed the analytical guarantee that stage~1's ordering is near-optimal.
+
+\begin{table}[t]
+\caption{ParaExpress Promise Portfolio}
+\label{tab:promise}
+\centering\footnotesize
+\begin{tabular}{@{}lp{1.55cm}p{1.5cm}p{2.0cm}@{}}
+\toprule
+\textbf{Class} & \textbf{Promise $(\tau,\alpha)$} & \textbf{Fulfilled by} & \textbf{Last mile}\\
+\midrule
+PX1 & $\le60$\,min, 95\% order fill & Store node / dark MFC & Grab Instant / GoSend on-demand\\
+PX2 & $\le4$\,h slot, 95\% & Dark / flagship MFC & Batched multi-stop rider runs\\
+PX3 & Next day, 98\% & B2C DC Tegal & Existing 3PL parcel\\
+PXB & B2B next-visit & Regional hubs & Parama / MOSTRANS\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Promise Tiers and Routing Waterfall}
+Table~\ref{tab:promise} defines the promise portfolio. The waterfall implements graceful degradation: if no PX1-feasible node passes the ATP and capacity filters of (P3), the order is re-quoted as PX2 (fulfilled by the flagship MFC in a batched multi-stop run) and otherwise as PX3 from Tegal. The consumer always sees an honest, dynamically computed promise \emph{before} checkout. Revision~5 adds the requirement that the waterfall also fires on \emph{dependency unavailability}, not only on infeasibility (principle P-6): if the Virtual Inventory Service, the courier rate shop or the ADR cache cannot answer within its stated budget, the promise degrades rather than the checkout stalling.

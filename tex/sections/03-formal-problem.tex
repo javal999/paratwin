@@ -1,0 +1,70 @@
+\section{Formal Problem Definition}\label{sec:formal}
+
+We give a formal definition of the ParaExpress design problem. The formulation is deliberately layered: a \emph{strategic} layer (where to open fulfillment nodes and what to stock), a \emph{tactical} layer (replenishment and staffing), and an \emph{operational} layer (real-time order routing and dispatch). Each layer is an optimization problem whose structure we exploit in Section~\ref{sec:structural}, and each is mirrored one-to-one by a module of the ParaTwin digital twin (Section~\ref{sec:twin}).
+
+\subsection{Network, Demand, and SLA Primitives}
+
+\begin{definition}[Fulfillment graph]
+The ParaExpress network is a directed graph $G=(\mathcal{N},\mathcal{A})$ whose node set $\mathcal{N}=\{0\}\cup\mathcal{D}\cup\mathcal{F}\cup\mathcal{Z}$ comprises the NDC (node 0), the set of regional DCs $\mathcal{D}$ (B2C DC Tegal and B2B DCs), the set of candidate fulfillment nodes $\mathcal{F}=\mathcal{F}^{\mathrm{mfc}}\cup\mathcal{F}^{\mathrm{store}}$ (own micro-fulfillment centers and Exagon consignment stores), and the set of demand zones $\mathcal{Z}$ (e.g., kelurahan-level polygons). Arcs $\mathcal{A}$ carry mid-mile flows ($0\to\mathcal{D}\to\mathcal{F}$) and last-mile flows ($\mathcal{F}\to\mathcal{Z}$).
+\end{definition}
+
+\begin{definition}[Demand field]
+Let $\mathcal{K}$ denote the SKU catalog, $|\mathcal{K}|\approx 2{,}000$ across 16 brands. Instant-channel demand in zone $z\in\mathcal{Z}$ for SKU $k\in\mathcal{K}$ is a marked Poisson process with rate $\lambda_{zk}\ge 0$ orders per hour; $\lambda_z=\sum_k\lambda_{zk}$ and $\Lambda=\sum_z\lambda_z$. Order composition (basket of SKUs and bundle explosions) follows a distribution $\mathcal{B}_z$ estimated from MagPie history. We write $p_j=\Pr[\,|B|=j\,]$ for the distribution of the number of \emph{distinct} SKUs in a basket, and $G_B(x)=\sum_{j\ge 1}p_jx^{j}$ for its probability generating function. \OPEN{empirical $p_j$ and $G_B$ from MagPie B2C order history, by metro and by channel}{Data Lead}{Phase 0 exit}
+\end{definition}
+
+\begin{definition}[Service promise]
+A promise class is a pair $(\tau,\alpha)$: the order must be delivered within $\tau$ minutes of payment with probability at least $\alpha$. ParaExpress operates three classes: $\mathrm{PX1}=(60\,\mathrm{min},0.95)$ (instant), $\mathrm{PX2}=(240\,\mathrm{min},0.95)$ (same-day slot), and $\mathrm{PX3}$ (next-day, fulfilled by the existing Tegal B2C DC flow). The end-to-end sojourn of an order decomposes as
+\begin{equation}\label{eq:sojourn}
+T=T_{\mathrm{route}}+T_{\mathrm{queue}}+T_{\mathrm{pick}}+T_{\mathrm{handover}}+T_{\mathrm{travel}},
+\end{equation}
+i.e., routing decision, waiting for a picker, pick+pack, courier pickup, and travel to the consumer. We write $T_{\mathrm{node}}=T_{\mathrm{queue}}+T_{\mathrm{pick}}+T_{\mathrm{handover}}$ throughout, and reserve $T_{\mathrm{travel}}$ for the stochastic last-mile leg. \emph{Revision~5 note:} Revision~4 used the symbol $t^{\alpha}_{\mathrm{node}}$ in a way that silently required $T_{\mathrm{travel}}$ to be deterministic; see Proposition~\ref{prop:radius}.
+\end{definition}
+
+\begin{definition}[Availability]\label{def:avail}
+Two distinct availability quantities are used in this report and must not be interchanged. The \emph{item fill rate} $\beta$ is the probability that a given SKU is on hand at a node when requested. The \emph{order fill rate} $\alpha_B$ is the probability that \emph{every} SKU in a basket is on hand at the assigned node. Revision~4 set inventory targets from $\beta$ and stated the promise in terms of $\alpha_B$ without an inversion between them; Proposition~\ref{prop:orderfill} supplies it.
+\end{definition}
+
+\subsection{Strategic Layer: SLA-Constrained Location--Allocation}
+
+Binary variables $y_f\in\{0,1\}$ open node $f\in\mathcal{F}$ (for a consignment store, ``opening'' means activating it as a fulfillment node with dedicated ParaExpress stock and app tooling); $x_{fz}\in[0,1]$ is the fraction of zone $z$'s instant demand assigned to $f$. Let $t_{fz}$ be the $\alpha$-quantile of $T$ in \eqref{eq:sojourn} when $f$ serves $z$ (travel time from the road network / Grab historical data), and let the \emph{coverage set} be $\mathcal{F}(z)=\{f: t_{fz}\le\tau\}$. With fixed cost $c^{\mathrm{fix}}_f$ per period (rent, staff, equipment amortization; near-zero for store nodes), variable fulfillment cost $c^{\mathrm{var}}_{fz}$ per order (pick, pack, courier fee $f\to z$), and per-order gross margin $m$, the strategic problem is:
+\begin{align}
+(\mathrm{P1})\quad \max_{x,y}\ &\sum_{z\in\mathcal{Z}}\sum_{f\in\mathcal{F}(z)}\bigl(m-c^{\mathrm{var}}_{fz}\bigr)\lambda_z x_{fz}-\sum_{f\in\mathcal{F}}c^{\mathrm{fix}}_f y_f \label{eq:p1}\\
+\text{s.t.}\ &\textstyle\sum_{f\in\mathcal{F}(z)}x_{fz}\le 1,\quad \forall z\in\mathcal{Z},\label{eq:p1a}\\
+&x_{fz}\le y_f,\quad \forall f,z,\label{eq:p1b}\\
+&\textstyle\sum_z\lambda_zx_{fz}\le\mu_fy_f,\quad\forall f\in\mathcal{F},\label{eq:p1c}\\
+&x_{fz}\ge 0,\ y_f\in\{0,1\},\nonumber
+\end{align}
+where $\mu_f$ is node $f$'s sustainable throughput (orders/hour) from its staffing and layout (Section~\ref{sec:mfc}). Constraint \eqref{eq:p1a} allows demand to remain unserved by PX1 (it falls back to PX2/PX3), \eqref{eq:p1b} links assignment to opening, and \eqref{eq:p1c} enforces throughput. (P1) generalizes the capacitated facility-location problem \cite{daskin2013,melo2009} with an SLA-induced coverage structure \cite{church1974}.
+
+\subsection{Strategic Layer: Forward Assortment}
+
+An MFC cannot hold 2,000 SKUs; it holds a forward assortment $S_f\subseteq\mathcal{K}$ limited by shelf capacity $V_f$ (slots). Let $w_k$ be the slot requirement of SKU $k$ and $r_{fk}$ the instant-demand revenue rate captured if $k$ is stocked at $f$ (orders containing an unstocked SKU either split, downgrade to PX2, or are lost with probability $\theta$). The assortment problem at node $f$ is
+\begin{equation}\label{eq:p2}
+(\mathrm{P2})\quad \max_{S\subseteq\mathcal{K}}\ \sum_{k\in S}r_{fk}\quad\text{s.t.}\quad\sum_{k\in S}w_k\le V_f.
+\end{equation}
+With basket effects the objective generalizes to $R_f(S)=\mathbb{E}_{\mathcal{B}}\bigl[m(B)\,\mathbf{1}\{B\subseteq S\}\bigr]$ over baskets $B$, which is monotone but not modular; Section~\ref{sec:structural} gives exact and approximate solutions for the practically relevant cases.
+
+\subsection{Tactical Layer: Inventory Positioning and Replenishment}
+
+Each stocked SKU $k$ at node $f$ follows a periodic base-stock policy with review period $T_r$ (replenishment wave from the parent DC via mid-mile), lead time $L_f$, and base-stock level
+\begin{equation}\label{eq:basestock}
+b_{fk}=\underbrace{\lambda_{fk}(T_r+L_f)}_{\text{cycle stock}}+\underbrace{z_{\beta^\star}\,\sigma_{fk}\sqrt{T_r+L_f}}_{\text{safety stock}},
+\end{equation}
+where $\lambda_{fk},\sigma_{fk}$ are the mean and standard deviation \emph{per unit time} of demand allocated to $f$, $z_{\beta^\star}=\Phi^{-1}(\beta^\star)$, and $\beta^\star$ is the \emph{item} fill rate implied by the \emph{order} fill target through Proposition~\ref{prop:orderfill}. \emph{Revision~5 note:} Revision~4 wrote $z_\beta$ with $\beta$ read directly from the PX1 promise, which is the substitution Proposition~\ref{prop:orderfill} forbids. Replenishment quantities feed a mid-mile vehicle-routing problem over $\mathcal{D}\to\mathcal{F}$ executed by the 3PL (MOSTRANS), a capacitated VRP with time windows \cite{toth2014}. The modern algorithmic landscape for this class is well charted: hybrid genetic search (HGS) with the SWAP* neighborhood is the quality benchmark for the CVRP \cite{vidal2022,wouda2024}; adaptive large neighborhood search (ALNS) is the reference framework for rich pickup-and-delivery variants \cite{ropke2006,voigt2025}; and LKH-3 remains the standard cross-check solver \cite{helsgaun2017}. Section~\ref{sec:solution} specifies which member of this portfolio each ParaExpress routing surface uses.
+
+\subsection{Operational Layer: Real-Time Order Routing}
+
+At decision epoch $t$, let $O(t)$ be the set of open instant orders and for order $o$ let $\mathcal{F}(o)\subseteq\mathcal{F}$ be the nodes that (i) cover $o$'s zone within the promise, (ii) have all SKUs of $o$'s basket in available-to-promise (ATP) virtual inventory, and (iii) have residual picking capacity. With routing cost $c_{of}$ (courier fee + marginal congestion cost + inventory-displacement penalty), the router solves
+\begin{align}
+(\mathrm{P3})\quad\min_u\ &\sum_{o\in O(t)}\sum_{f\in\mathcal{F}(o)}c_{of}u_{of}\label{eq:p3}\\
+\text{s.t.}\ &\textstyle\sum_f u_{of}=1\ \ \forall o,\qquad \sum_o u_{of}\le\kappa_f(t)\ \ \forall f,\nonumber
+\end{align}
+with $u_{of}\in\{0,1\}$ and $\kappa_f(t)$ the remaining slot capacity of $f$ in the current wave. (P3) is re-solved once per wave by the Order Routing Engine under the commitment policy of Section~\ref{sec:structural}-\ref{sec:commit}; Theorem~\ref{thm:routing} shows it is exactly solvable in real time.
+
+\subsection{Operational Layer: In-Node Queueing and Dispatch}
+
+Node $f$ with $c_f$ pickers is modeled as a queue with wave-batched arrivals at aggregate rate $\lambda_f=\sum_z\lambda_zx_{fz}$ and pick+pack rate $\nu$ per picker. Courier arrival after handover request is an independent delay $D^{\mathrm{grab}}_f$ (empirically log-normal from Grab/GoSend APIs). The PX1 promise requires
+\begin{equation}\label{eq:px1}
+\Pr\bigl[T_{\mathrm{node}}+T_{\mathrm{travel}}\le\tau-T_{\mathrm{route}}\bigr]\ge\alpha,
+\end{equation}
+which couples staffing $c_f$, wave length $\Delta$, and service radius to demand (Propositions~\ref{prop:radius} and~\ref{prop:staffing}).

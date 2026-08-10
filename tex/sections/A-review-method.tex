@@ -1,0 +1,83 @@
+\appendices
+
+\section{Design Review Method, Derivations, and Change Register}
+
+This appendix documents how Revision~5's changes were produced. It is included so that a reader can audit the reasoning behind each change rather than accept it on authority, and so that the same review can be re-run against Revision~5.
+
+\subsection{Why a Structured Review, and Why This Structure}
+
+Revision~4 was written by the team that designed ParaExpress, and reviewed by the same team. The empirical software-engineering literature is unusually clear about what beats unstructured review. Fagan's inspection method established that a structured reading with defined roles finds materially more defects than unstructured review \cite{fagan1976}. Porter, Votta and Basili then showed in a replicated controlled experiment that \emph{defect-based scenario reading}---each reviewer works a distinct scenario with its own question list---outperforms both ad hoc and checklist-based review on requirements documents \cite{porter1995}. Basili et al.\ generalized the scenario idea into \emph{perspective-based reading}, in which each reviewer reads the same artifact from one assigned stakeholder viewpoint \cite{basili1996}. The mechanism is coverage: a single reader with a general mandate re-finds the defects their own expertise makes salient, while a set of readers with disjoint mandates covers a wider defect space with the same effort.
+
+The review of Revision~4 therefore assigned six disjoint lenses, each with its own question set:
+
+\begin{enumerate}
+\item \textbf{Optimization and mathematics} --- does each theorem prove what the surrounding prose claims; do the stated assumptions hold in the deployment described; is any result used outside its own conditions.
+\item \textbf{Fulfillment and inventory operations} --- network tiering, node sizing, forward assortment, base stock, replenishment cadence, staffing, in-node process, returns.
+\item \textbf{Platform and systems engineering} --- the new and extended services, interface and event contracts, availability and latency targets, failure modes, consistency, offline paths.
+\item \textbf{Unit economics and commercial structure} --- node P\&L, break-even logic, subsidy, partnership terms, cannibalization, capitalization.
+\item \textbf{Indonesia execution reality} --- marketplace program dependence, carrier supply, partner incentives and data quality, labour and real estate, regulatory exposure, rollout gates.
+\item \textbf{The report as a written argument} --- claims outrunning evidence, benchmark comparability, design targets presented as results, missing sensitivity, notation.
+\end{enumerate}
+
+Three procedural rules were applied, each for a documented reason.
+
+\emph{No severity filter at generation time.} The review was instructed to report every improvement found at every severity, and to order rather than suppress. Filtering instructions applied before generation remove findings that the filter's author could not have anticipated; the reader's need for a short list is met instead by severity ordering, a per-finding confidence field, and a ranked ``fix first'' list. This is the same reasoning that motivates full-coverage reading in inspection practice \cite{fagan1976,porter1995}. It is a procedural choice, not an empirical result: no controlled comparison of filtered against unfiltered review is cited here.
+
+\emph{An adversarial pass before publication.} Every finding was then argued against: the strongest case that it was \emph{not} a real problem was constructed, and findings that did not survive were discarded with the reason recorded (Appendix~A-D). This is the premortem discipline \cite{klein2007} applied to the review itself rather than to the plan, and it exists because a multi-lens review generates plausible-but-wrong findings at a rate that would otherwise erode the credibility of the correct ones. Seven of forty-eight candidate findings were discarded at this step, including five where the reviewer's arithmetic or reading was wrong and Revision~4's was right.
+
+\emph{Arithmetic was recomputed, not accepted.} Every numeric claim in Revision~4 that could be checked from the document was recomputed independently, including the cubic root of Theorem~\ref{thm:nodecount}, its $F\to0$ limit, the complexity bound of Theorem~\ref{thm:routing}, the radius-versus-in-node-time arithmetic of Proposition~\ref{prop:radius}, and the picker-throughput consistency of Table~\ref{tab:formats}. All five checked out and are recorded as such.
+
+\subsection{Derivation of Each Correction}
+
+Table~\ref{tab:derivation} maps each material change to the established result it rests on. Nothing in Revision~5 is a novel mathematical contribution: every correction applies a known result that Revision~4 either did not cite or cited in a special case.
+
+\begin{table*}[t]
+\caption{Derivation of Revision-5 Corrections}
+\label{tab:derivation}
+\centering\footnotesize
+\begin{tabular}{@{}p{2.5cm}p{5.4cm}p{5.4cm}p{3.0cm}@{}}
+\toprule
+\textbf{Change} & \textbf{What Revision 4 did} & \textbf{Why it is wrong, and what replaces it} & \textbf{Rests on}\\
+\midrule
+Prop.~\ref{prop:orderfill} order fill rate (new) & Sized safety stock from an item fill rate $\beta$; promised 95\% measured on the order & An order fails if any basket SKU is missing, so $\alpha_B=G_B(\beta)$; invert to get $\beta^\star=G_B^{-1}(\alpha_B^{\mathrm{tgt}})$. Under positive association the product form is a lower bound, so $\beta^\star$ is conservative & Song \cite{song1998}; Hausman, Lee \& Zhang \cite{hausman1998}; Esary, Proschan \& Walkup \cite{esary1967}\\
+Prop.~\ref{prop:radius} service radius (restated) & $R=v(\tau-T_{\mathrm{route}}-t^{\alpha}_{\mathrm{node}})^{+}$ with $v$ a mean speed & Uses $q_\alpha(X+Y)=q_\alpha(X)+\mathbb{E}[Y]$, false for any $Y$ with positive variance; quantiles/VaR are not additive. Replaced by a Boole risk-budget split, distribution-free and dependence-free & Artzner et al.\ \cite{artzner1999}; Embrechts, McNeil \& Straumann \cite{embrechts2002}; Boole's inequality \cite{feller1968}\\
+Prop.~\ref{prop:pooling} pooling penalty (restated) & $\sqrt{n}$ safety-stock inflation, independent zones & The design models Hawkes-correlated demand and re-pools via substitution/rebalancing; $\Psi(n,\rho)=\sqrt{n/(1+(n-1)\rho)}$. Eppen's own paper covers the correlated case & Eppen \cite{eppen1979}\\
+Thm.~\ref{thm:nodecount} node count (restated) & Unimodal cost with $\sqrt n$ term; single $n^\star$ & Restated on $\Psi(n,\rho)$; $n^\star$ nondecreasing in $\rho$, so Revision~4 biased the node count downward & Follows from Prop.~\ref{prop:pooling}\\
+\S\ref{sec:capacitated} capacitated coverage & Cited $(1-1/e)$, proved for $\mu_f=\infty$, in a network with binding throughput caps & Explicit counterexample: capacity creates complementarity, so whole-order coverage is not submodular and greedy loses the bound. Guarantee recovered by a different algorithm & Nemhauser, Wolsey \& Fisher \cite{nemhauser1978} (scope); Chekuri \& Kumar \cite{chekuri2004}; Fleischer et al.\ \cite{fleischer2011}; Ageev \& Sviridenko \cite{ageev2004}\\
+Prop.~\ref{prop:staffing} staffing (restated) & Halfin--Whitt on M/M/$c$, with wave-batched release specified elsewhere & Wave release makes arrivals compound Poisson; index of dispersion $1+\lambda_f\Delta$ inflates the safety term by its square root, making $\Delta$ a two-sided decision & Halfin \& Whitt \cite{halfin1981}; Whitt \cite{whitt1993,whitt2004}; Chaudhry \& Templeton \cite{chaudhry1983}\\
+Prop.~\ref{prop:atp} ATP safety (restated) & Single-partition invariant with fixed 5-min posting latency & Adds effective latency from liveness heartbeats, allocation suspension, and a cross-partition commit rule for rebalancing and split shipment & Herlihy \& Wing \cite{herlihy1990}; Gray \& Reuter \cite{gray1993}; Garcia-Molina \& Salem \cite{garciamolina1987}; Gilbert \& Lynch \cite{gilbert2002}\\
+\S\ref{sec:commit} commitment policy (new) & ``Re-solved every few seconds'' with per-wave optimality claimed & States the commitment rule, reframes the router as online, and measures regret against clairvoyant instead of claiming an unproven bound & Klapp et al.\ \cite{klapp2018}; Ulmer et al.\ \cite{ulmer2021}; Lan et al.\ \cite{lan2024}\\
+Thm.~\ref{thm:assortment}(iv) basket bound & Degradation factor $(1-\epsilon)$ with $\epsilon$ a basket \emph{count} share & The objective measures revenue, so the bound must be on revenue share $\epsilon_{\mathrm{rev}}$; cross-brand baskets are plausibly larger than average & Sviridenko \cite{sviridenko2004}; Kellerer, Pferschy \& Pisinger \cite{kellerer2004}\\
+Twin policy check (new) & Shared decision code presented as pure benefit & Shared code removes drift and removes independent verification of the decision model; adds an off-policy scored held-out policy & Sargent \cite{sargent2013}; Li et al.\ \cite{li2011}\\
+E8 incrementality (new) & Cannibalization listed as a risk and the same mechanism sold as a benefit & Makes incrementality a measured treatment effect with a matched-market design & Imbens \& Rubin \cite{imbens2015}; Abadie, Diamond \& Hainmueller \cite{abadie2010}\\
+Kill criteria (new) & Gates tested execution quality only; no stop condition & A design with no falsifying observation cannot be tested by its own gates; adds five measurable stop conditions with pre-published thresholds & Popper \cite{popper1959}; Klein \cite{klein2007}; Flyvbjerg \cite{flyvbjerg2006}\\
+Appendix~B sensitivity (new) & One illustrative curve, parameters fixed & Design rests on parameters with no stated ranges; adds ranked variance contribution over the inputs of Thm.~\ref{thm:nodecount} and Prop.~\ref{prop:radius} & Saltelli et al.\ \cite{saltelli2008}\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Findings Implemented Without New Mathematics}
+
+Fourteen findings required specification rather than derivation and are implemented in the body: per-cell provenance marks in Table~\ref{tab:bench}; the target-versus-observed framing of the capability comparison; the two-stage sizing procedure of Section~\ref{sec:arch}-\ref{sec:sizing}; the contribution floor in Corollary~\ref{cor:stores}; the returns operating model (Section~\ref{sec:mfc}-\ref{sec:returns}); intra-day lateral replenishment (Section~\ref{sec:mfc}-\ref{sec:lateral}); removal of the unsupported store-node throughput range; a separate store-node shrink allowance; the ADR per-input staleness contract; the composed-path latency requirement; the VIS degraded reservation mode and RTO; target-aware decision-log replay and a stated reservation TTL; per-metro gates for Phases 3 and 4; and the direct-channel share target that converts a named mitigation into a measurable one.
+
+\subsection{Findings Deferred to Open Items}
+
+Fourteen findings named a quantity the design depends on and nobody has measured. These are not resolved by argument, and writing a plausible value in their place would produce a specification that runs and is quietly wrong. Each is marked inline at the point of use and registered in Table~\ref{tab:open} with an owner and the decision it blocks. The fourteen findings expand into twenty-five register rows, because several of them name more than one unmeasured quantity: the node-economics finding alone contributes seven. Ten rows block Phase~0.
+
+\subsection{Findings Examined and Rejected}
+
+Seven candidate findings did not survive the adversarial pass. They are recorded so that they are not raised again.
+
+\begin{enumerate}
+\item \emph{``Theorem~\ref{thm:hardness}'s Set Cover reduction is invalid.''} Checked. One zone per element, one candidate node per set with zero-cost coverage, uniform fixed cost $\varepsilon$, and $M\gg|\mathcal{S}|\varepsilon$ jointly force any optimal solution to cover all zones and then minimize node count. The reduction is standard and correct.
+\item \emph{``The worked numbers of Remark~\ref{rem:numval} do not check.''} They do. $2.4x^3+6x^2-120=0$ has its unique positive root at $x\approx3.012$, giving $n^\star\approx9.07$ and $C(n^\star)\approx68.8$; the $F\to0$ limit $b/a=20$ is also correct.
+\item \emph{``Table~\ref{tab:formats} node throughput contradicts the stated picker rate.''} It does not: at 10 orders per picker-hour, 2--6 pickers map onto the stated 20--60 orders/hour for a dark MFC and 6--15 pickers onto 60--150 for a flagship. The store-node row is a separate and real problem, recorded as O-14.
+\item \emph{``The claim that 3 minutes of in-node time buys 1\,km of radius at 20\,km/h is wrong.''} It is right, and the quadratic node-count consequence follows correctly from $n_{\min}\propto R^{-2}$.
+\item \emph{``Theorem~\ref{thm:routing}'s $O(|O|^2|\mathcal{F}|)$ bound is overstated.''} It is not. Successive shortest paths over a bipartite graph with $O(|O||\mathcal{F}|)$ arcs, one unit augmentation per order, each a Dijkstra pass with Johnson potentials, gives the stated bound up to logarithmic factors.
+\item \emph{``The cubic of Theorem~\ref{thm:nodecount} is misderived.''} Verified by differentiation and substitution.
+\item \emph{``Propositions~\ref{prop:pooling} and~\ref{prop:staffing} contradict each other by making decentralization simultaneously costly and cheap.''} They do not. Both penalize splitting---one in inventory, one in labour---and both counterbalance the coverage pressure of Proposition~\ref{prop:radius}. The report's framing is consistent.
+\end{enumerate}
+
+\subsection{What This Review Did Not Cover}
+
+Three areas were outside the review's scope and remain unexamined: legal and regulatory exposure (halal certification handling at fulfillment nodes, cosmetics-specific BPOM requirements for storage and traceability, employment classification risk); information security beyond the transport and access controls stated in Section~\ref{sec:solution}; and the accuracy of the third-party market figures in Section~\ref{sec:bench} beyond marking their provenance. Each should carry its own review before Phase~1 commits; the regulatory gap is registered as O-24 and the other two are named here without a register row, because neither yet names a specific unknown quantity.

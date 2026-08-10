@@ -52,7 +52,22 @@ Check: the inflation factor at Delta = 30 s is 1.0206 at 10 orders/hour, 1.1180 
 </corrections>
 
 <report_location>
-[Path to the Revision 5 report and its companion notes, for example `../paraexpress/deliverables/ParaExpress-Technical-Report/`. Delete this block if the repository has no access to them, in which case the correction register above is the whole specification.]
+The Revision 5 report and its companion notes are in this repository at
+`deliverables/ParaExpress-Technical-Report/`:
+
+- `paraexpress-technical-report-rev5.pdf` — the shipped report
+- `paraexpress-technical-report-rev5-singlefile.tex` — its LaTeX source
+- `paraexpress-rev4-design-review.md` — the review that produced the corrections
+- `open-items-register.md` — the 25 open items, 10 of which block Phase 0
+
+Related: `knowledge/paraexpress-technical-report-rev4.pdf` (superseded),
+`knowledge/corrections-and-sources.md` (correction-to-source map),
+`prototypes/verification/` (scripts reproducing the report's numbers).
+
+The ParaTwin source this epic maps onto is under `paratwin/` — the Rust engine
+is `paratwin/engine/src/`, the desktop shell `paratwin/src-tauri/`, the frontend
+`paratwin/web/`. Story file paths must be written relative to the repository
+root and therefore begin with `paratwin/`.
 </report_location>
 
 CONTEXT

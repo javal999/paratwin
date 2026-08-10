@@ -1,0 +1,210 @@
+\documentclass[10pt,twocolumn,letterpaper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{mathptmx}
+\usepackage[left=0.62in,right=0.62in,top=0.72in,bottom=0.78in,columnsep=0.22in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs,array,multirow,graphicx,xcolor,url,lettrine,balance}
+\hyphenation{Para-Ex-press Para-Twin fulfill-ment mar-ket-place con-sign-ment}
+\usepackage[hidelinks]{hyperref}
+\graphicspath{{figures/}{tex/figures/}}
+\usepackage[font=footnotesize,labelsep=period,justification=raggedright,singlelinecheck=false]{caption}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+
+% ---- IEEE-like sectioning ----
+\renewcommand{\thesection}{\Roman{section}}
+\renewcommand{\thesubsection}{\Alph{subsection}}
+\titleformat{\section}[block]{\centering\normalsize\scshape}{\thesection.}{0.6em}{}
+\titleformat{\subsection}[block]{\normalsize\itshape}{\thesubsection.}{0.5em}{}
+\titleformat{\subsubsection}[runin]{\normalsize\itshape}{}{0em}{}[:]
+\titlespacing*{\section}{0pt}{9pt plus 2pt}{5pt}
+\titlespacing*{\subsection}{0pt}{7pt plus 1pt}{3pt}
+\setlength{\parindent}{1em}
+\setlength{\abovedisplayskip}{4pt}\setlength{\belowdisplayskip}{4pt}
+
+\newcommand{\IEEEPARstart}[2]{\lettrine[lines=2,findent=2pt,nindent=0pt]{\textbf{#1}}{#2}}
+\newenvironment{IEEEkeywords}{\vspace{2pt}\noindent\footnotesize\textit{Index Terms}---}{\vspace{4pt}}
+\newcommand{\appendices}{\par\setcounter{section}{0}\setcounter{subsection}{0}%
+  \renewcommand{\thesection}{\Alph{section}}%
+  \renewcommand{\thesubsection}{\thesection-\Alph{subsection}}%
+  \titleformat{\section}[block]{\centering\normalsize\scshape}{Appendix~\thesection}{0.6em}{}}
+
+\pagestyle{fancy}\fancyhf{}
+\fancyhead[L]{\scriptsize\scshape PARATECH PLATFORM R\&D TECHNICAL REPORT, VOL. 1, NO. 2, AUGUST 2026 (REVISION 5)}
+\fancyhead[R]{\scriptsize\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyhead[L]{\scriptsize\scshape PARATECH PLATFORM R\&D TECHNICAL REPORT, VOL. 1, NO. 2, AUGUST 2026 (REVISION 5)}\fancyhead[R]{\scriptsize\thepage}\renewcommand{\headrulewidth}{0pt}}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{assumption}{Assumption}
+\newtheorem{remark}{Remark}
+
+\definecolor{openred}{RGB}{150,20,20}
+\definecolor{gr}{RGB}{90,90,90}
+\newcommand{\OPEN}[3]{{\color{openred}\footnotesize\textsf{[OPEN --- #1 --- owner: #2 --- needed by: #3]}}}
+\newcommand{\prov}[1]{{\color{gr}\scriptsize\textsf{[#1]}}}
+
+\begin{document}
+
+\twocolumn[
+\begin{@twocolumnfalse}
+\vspace*{-8pt}
+\begin{center}
+{\LARGE ParaExpress: A Mathematically Grounded Hyperlocal\\[2pt]
+Fulfillment Network and Digital Twin Architecture\\[2pt]
+for Instant Beauty Commerce in Indonesia\par}
+\vspace{6pt}
+{\large\textsc{Revision 5}\par}
+\vspace{8pt}
+{\normalsize ParaTech Platform R\&D Team, ParagonCorp\par}
+\vspace{10pt}
+\end{center}
+\begin{quotation}\noindent\footnotesize
+\textbf{\textit{Abstract}}---Instant-delivery platforms such as Shopee Express (SPX Instant) and Astro now deliver consumer goods within one hour of order placement, and platforms that own the fastest delivery promise increasingly own the consumer relationship---and, eventually, private-label categories that compete with brand manufacturers. This report specifies \emph{ParaExpress}, a brand-owned hyperlocal fulfillment network and digital twin that allows ParagonCorp, Indonesia's largest beauty company (16 brands, ${\approx}2{,}000$ SKUs and bundles), to fulfill marketplace and direct orders from the fulfillment node nearest the consumer within a sub-60-minute service-level agreement (SLA), while preserving the economics of a manufacturer rather than a platform. We (i) benchmark the fulfillment architectures of Amazon, Alibaba/Cainiao, JD Logistics, Coupang, and quick-commerce operators; (ii) formalize the ParaExpress design problem as an SLA-constrained facility-location, inventory-positioning, and order-routing program, and prove structural results---NP-hardness, a $(1-1/e)$ greedy coverage guarantee \emph{stated within its uncapacitated scope}, unimodality of the network cost in node count yielding a unique optimal micro-fulfillment-center (MFC) count \emph{under a correlation-corrected pooling law}, exact greedy optimality for SKU forward-placement under a uniform matroid, and polynomial-time integrality of real-time order routing; (iii) derive the MFC operating model from these results; (iv) specify new capabilities for the existing MagPie, Heron, Exagon, and ShipGo systems plus three new platform services---a Virtual Inventory \& Distributed Order Management service, an Order Routing Engine, and the ParaTwin digital twin; and (v) define the digital twin's formal state model, data contracts, and experiment portfolio.
+
+Revision~5 corrects five results whose stated scope did not match their use, adds three results the design required and did not have---an order-level fill-rate law, a distribution-free service-radius bound, and a correlation-corrected pooling law---replaces the acceptance gate that could be passed by an incorrect model, adds the gates Phases~3 and~4 lacked, adds the demand-side experiment and the kill criteria the program lacked, and registers twenty-five open items that must be closed before the corresponding decision is taken. The net effect of the corrections is to raise the required node count per metro and to raise the per-SKU availability target; both changes increase the capital ask and neither was visible in Revision~4.
+\end{quotation}
+\begin{quotation}\noindent\footnotesize
+\textit{Index Terms}---Distribution network design, e-commerce fulfillment, facility location, digital twin, last-mile logistics, micro-fulfillment center, order management, quick commerce, supply chain optimization, vehicle routing, order fill rate, risk pooling.
+\end{quotation}
+\vspace{10pt}
+\end{@twocolumnfalse}
+]
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+\footnotetext[1]{Manuscript revised August 2026. Supersedes Revision 4 (August 2026). The authors are with the ParaTech Platform Research \& Development Division, PT Paragon Technology and Innovation (ParagonCorp), Jakarta, Indonesia (e-mail: paratech-rnd@paracorpgroup.com). This revision incorporates a structured six-lens design review of Revision~4. Appendix~A documents the review method, the derivation of each correction, and the mapping from finding to change. Open items carried by this revision are registered in Section~XI and marked inline in red.}
+\renewcommand{\thefootnote}{\arabic{footnote}}
+
+
+
+
+
+
+\input{sections/01-introduction}
+\input{sections/02-benchmark}
+\input{sections/03-formal-problem}
+\input{sections/04-structural-results}
+\input{sections/05-network-architecture}
+\input{sections/06-mfc-operating-model}
+\input{sections/07-business-model}
+\input{sections/08-solution-specification}
+\input{sections/09-paratwin}
+\input{sections/10-implementation-roadmap}
+\input{sections/11-open-items}
+\input{sections/12-conclusion}
+\input{sections/A-review-method}
+\input{sections/B-sensitivity}
+
+\begin{thebibliography}{99}
+\footnotesize
+
+\bibitem{chandra2026} R. Chandra \emph{et al.}, ``Regionalize and scale: Amazon's fulfillment network design for faster and cheaper delivery,'' \emph{INFORMS J. Appl. Analytics}, vol.~56, no.~1, pp.~23--41, Jan.~2026.
+\bibitem{amazonscience} Amazon Science, ``Sizing down to scale up: How Amazon reworked its fulfillment network to meet customer demand,'' 2023. [Online].
+\bibitem{supplychaindive2023} Supply Chain Dive, ``Amazon shifts to regional fulfillment model,'' 2023. [Online].
+\bibitem{costar2024} CoStar News, ``Amazon to double number of same-day delivery centers after initial success,'' 2024. [Online].
+\bibitem{palmer2024} A. Palmer, ``Amazon says 60\% of Prime orders are arriving same day or next day,'' CNBC, Apr.~29, 2024. [Online].
+\bibitem{redstag} Red Stag Fulfillment, ``How many Amazon warehouses are there?'' 2025. [Online].
+\bibitem{amazon2023robots} Amazon, ``Amazon announces new fulfillment center robots, Sequoia and Digit,'' About Amazon, Oct.~2023. [Online].
+\bibitem{techcrunch2025} TechCrunch, ``Amazon deploys its 1 millionth robot, releases generative AI model,'' Jul.~1, 2025. [Online].
+\bibitem{spiegel2013} J.~R. Spiegel, M.~T. McKenna, G.~S. Lakshman, and P.~G. Nordstrom, ``Method and system for anticipatory package shipping,'' U.S. Patent 8\,615\,473 B2, Dec.~24, 2013.
+\bibitem{wirechina2024} The Wire China, ``Can Alibaba deliver?'' Jan.~28, 2024. [Online].
+\bibitem{scmp2023} South China Morning Post, ``Alibaba logistics unit Cainiao unveils express service to improve e-commerce efficiency,'' 2023. [Online].
+\bibitem{vangaalen2022} E. van Gaalen, ``Hit and miss---The ultimate guide to Alibaba's Hema (Freshippo) store formats, Part 1,'' ChinaTalk, 2022. [Online].
+\bibitem{statista2024} Statista, ``JD Logistics: Number of warehouses 2024,'' 2024. [Online].
+\bibitem{wang2025} X. Wang \emph{et al.}, ``JD.com improves fulfillment efficiency with data-driven integrated assortment planning and inventory allocation,'' \emph{INFORMS J. Appl. Analytics}, 2025.
+\bibitem{goodwater2021} Goodwater Capital, ``Understanding Coupang: Setting a new bar for e-commerce (S-1/IPO teardown),'' 2021. [Online].
+\bibitem{coupang2025} Coupang, Inc., ``Coupang: A global leader in technology innovation,'' 2025. [Online].
+\bibitem{suitefleet2025} SuiteFleet, ``The complete guide to quick-commerce operations,'' 2025. [Online].
+\bibitem{browne2024} R. Browne, ``Grocery startup Getir to exit US, Europe and UK, refocus on Turkey,'' CNBC, Apr.~29, 2024. [Online].
+\bibitem{sifted2024} Sifted (Financial Times), ``What's left of Europe's speedy grocery sector?'' 2024. [Online].
+\bibitem{mohan2025} M. Mohan, ``State of Indian quick commerce market 2025---Blinkit, Zepto, Big Basket, Swiggy and Zomato,'' May~2025. [Online].
+\bibitem{storyboard2025} Storyboard18, ``Dark stores explained: How Blinkit, Zepto are building dense networks for quick commerce growth,'' 2025. [Online].
+\bibitem{scd2025} Supply Chain Dive, ``Walmart expands same-day delivery reach,'' 2025. [Online].
+\bibitem{target2023} Target Corp., ``We're expanding next-day delivery capabilities (sortation centers fact sheet),'' 2023. [Online].
+\bibitem{magpieiq2026} Magpie IQ, ``Shopee market share in Indonesia: Live platform data,'' 2026. [Online].
+\bibitem{databoks2024} Databoks/Katadata (Compas data), ``Shopee dominates Indonesia's beauty product e-commerce market,'' 2024. [Online].
+\bibitem{spx2025} SPX Express Indonesia, ``Layanan pengiriman SPX Express,'' 2025. [Online].
+\bibitem{mordor2024} Mordor Intelligence, ``Indonesia e-commerce market trends, growth \& share (to 2031),'' 2024. [Online].
+\bibitem{nikkei2023} Nikkei Asia, ``China-owned TikTok to invest \$1.5bn in Tokopedia, take 75\% stake,'' Dec.~2023. [Online].
+\bibitem{moca2026} MOCA Technology, ``TikTok Shop Indonesia: From ban to \$13.8B GMV,'' 2026. [Online].
+\bibitem{theken2023} The Ken, ``Where quick-commerce startups fail, Indonesia's Astro sees ways to make a fast buck,'' 2023. [Online].
+\bibitem{gpca2024} Global Private Capital Association and AC Ventures, ``Astro Technologies Indonesia (case study),'' 2024. [Online].
+\bibitem{grab2025} Grab, ``GrabExpress Instant \& Same Day package \& document delivery (merchant API),'' 2025. [Online].
+\bibitem{gojek2024} Gojek/GoTo, ``Integrasi API GoSend,'' 2024. [Online].
+\bibitem{ssi2022} Supply Chain Indonesia, ``Platform digital Mostrans optimalkan layanan distribusi dan logistik,'' 2022. [Online].
+\bibitem{kalbe2019} Kalbe Farma, ``Kalbe Group launches digital transportation platform first in Indonesia for the health industry,'' 2019. [Online].
+\bibitem{rm2026} ResearchAndMarkets, ``Indonesia quick commerce report 2026: Market to reach \$1.83 billion by 2029,'' GlobeNewswire, Apr.~2026. [Online].
+
+\bibitem{daskin2013} M.~S. Daskin, \emph{Network and Discrete Location: Models, Algorithms, and Applications}, 2nd~ed. Hoboken, NJ: Wiley, 2013.
+\bibitem{melo2009} M.~T. Melo, S. Nickel, and F. Saldanha-da-Gama, ``Facility location and supply chain management---A review,'' \emph{Eur. J. Oper. Res.}, vol.~196, no.~2, pp.~401--412, 2009.
+\bibitem{church1974} R. Church and C.~S. ReVelle, ``The maximal covering location problem,'' \emph{Papers Regional Sci. Assoc.}, vol.~32, pp.~101--118, 1974.
+\bibitem{garey1979} M.~R. Garey and D.~S. Johnson, \emph{Computers and Intractability: A Guide to the Theory of NP-Completeness}. San Francisco, CA: Freeman, 1979.
+\bibitem{nemhauser1978} G.~L. Nemhauser, L.~A. Wolsey, and M.~L. Fisher, ``An analysis of approximations for maximizing submodular set functions---I,'' \emph{Math. Program.}, vol.~14, no.~1, pp.~265--294, 1978.
+\bibitem{cornuejols1977} G. Cornuejols, M.~L. Fisher, and G.~L. Nemhauser, ``Location of bank accounts to optimize float: An analytic study of exact and approximate algorithms,'' \emph{Manage. Sci.}, vol.~23, no.~8, pp.~789--810, 1977.
+\bibitem{feige1998} U. Feige, ``A threshold of $\ln n$ for approximating set cover,'' \emph{J. ACM}, vol.~45, no.~4, pp.~634--652, 1998.
+\bibitem{fleischer2011} L. Fleischer, M.~X. Goemans, V.~S. Mirrokni, and M. Sviridenko, ``Tight approximation algorithms for maximum separable assignment problems,'' \emph{Math. Oper. Res.}, vol.~36, no.~3, pp.~416--431, 2011.
+\bibitem{chekuri2004} C. Chekuri and A. Kumar, ``Maximum coverage problem with group budget constraints and applications,'' in \emph{APPROX/RANDOM 2004}, LNCS 3122, pp.~72--83.
+\bibitem{ageev2004} A.~A. Ageev and M. Sviridenko, ``Pipage rounding: A new method of constructing algorithms with proven performance guarantee,'' \emph{J. Comb. Optim.}, vol.~8, no.~3, pp.~307--328, 2004.
+\bibitem{eppen1979} G.~D. Eppen, ``Effects of centralization on expected costs in a multi-location newsboy problem,'' \emph{Manage. Sci.}, vol.~25, no.~5, pp.~498--501, 1979.
+\bibitem{daganzo1984} C.~F. Daganzo, ``The distance traveled to visit $N$ points with a maximum of $C$ stops per vehicle: An analytic model and an application,'' \emph{Transp. Sci.}, vol.~18, no.~4, pp.~331--350, 1984.
+\bibitem{song1998} J.-S. Song, ``On the order fill rate in a multi-item, base-stock inventory system,'' \emph{Oper. Res.}, vol.~46, no.~6, pp.~831--845, 1998.
+\bibitem{hausman1998} W.~H. Hausman, H.~L. Lee, and A.~X. Zhang, ``Joint demand fulfillment probability in a multi-item inventory system with independent order-up-to policies,'' \emph{Eur. J. Oper. Res.}, vol.~109, no.~3, pp.~646--659, 1998.
+\bibitem{esary1967} J.~D. Esary, F. Proschan, and D.~W. Walkup, ``Association of random variables, with applications,'' \emph{Ann. Math. Statist.}, vol.~38, no.~5, pp.~1466--1474, 1967.
+\bibitem{artzner1999} P. Artzner, F. Delbaen, J.-M. Eber, and D. Heath, ``Coherent measures of risk,'' \emph{Math. Finance}, vol.~9, no.~3, pp.~203--228, 1999.
+\bibitem{embrechts2002} P. Embrechts, A. McNeil, and D. Straumann, ``Correlation and dependence in risk management: Properties and pitfalls,'' in \emph{Risk Management: Value at Risk and Beyond}. Cambridge, U.K.: Cambridge Univ. Press, 2002, pp.~176--223.
+\bibitem{feller1968} W. Feller, \emph{An Introduction to Probability Theory and Its Applications}, vol.~I, 3rd~ed. New York: Wiley, 1968.
+\bibitem{kellerer2004} H. Kellerer, U. Pferschy, and D. Pisinger, \emph{Knapsack Problems}. Berlin, Germany: Springer, 2004.
+\bibitem{sviridenko2004} M. Sviridenko, ``A note on maximizing a submodular set function subject to a knapsack constraint,'' \emph{Oper. Res. Lett.}, vol.~32, no.~1, pp.~41--43, 2004.
+\bibitem{ahuja1993} R.~K. Ahuja, T.~L. Magnanti, and J.~B. Orlin, \emph{Network Flows: Theory, Algorithms, and Applications}. Englewood Cliffs, NJ: Prentice-Hall, 1993.
+\bibitem{halfin1981} S. Halfin and W. Whitt, ``Heavy-traffic limits for queues with many exponential servers,'' \emph{Oper. Res.}, vol.~29, no.~3, pp.~567--588, 1981.
+\bibitem{whitt1993} W. Whitt, ``Approximations for the GI/G/m queue,'' \emph{Prod. Oper. Manage.}, vol.~2, no.~2, pp.~114--161, 1993.
+\bibitem{whitt2004} W. Whitt, ``A diffusion approximation for the G/GI/n/m queue,'' \emph{Oper. Res.}, vol.~52, no.~6, pp.~922--941, 2004.
+\bibitem{chaudhry1983} M.~L. Chaudhry and J.~G.~C. Templeton, \emph{A First Course in Bulk Queues}. New York: Wiley, 1983.
+\bibitem{toth2014} P. Toth and D. Vigo, Eds., \emph{Vehicle Routing: Problems, Methods, and Applications}, 2nd~ed. Philadelphia, PA: SIAM, 2014.
+\bibitem{clarke1964} G. Clarke and J.~W. Wright, ``Scheduling of vehicles from a central depot to a number of delivery points,'' \emph{Oper. Res.}, vol.~12, no.~4, pp.~568--581, 1964.
+\bibitem{ropke2006} S. Ropke and D. Pisinger, ``An adaptive large neighborhood search heuristic for the pickup and delivery problem with time windows,'' \emph{Transp. Sci.}, vol.~40, no.~4, pp.~455--472, 2006.
+\bibitem{vidal2022} T. Vidal, ``Hybrid genetic search for the CVRP: Open-source implementation and SWAP* neighborhood,'' \emph{Comput. Oper. Res.}, vol.~140, art.~105643, 2022.
+\bibitem{wouda2024} N.~A. Wouda, L. Lan, and W. Kool, ``PyVRP: A high-performance VRP solver package,'' \emph{INFORMS J. Comput.}, vol.~36, no.~4, pp.~943--955, 2024.
+\bibitem{helsgaun2017} K. Helsgaun, ``An extension of the Lin--Kernighan--Helsgaun TSP solver for constrained traveling salesman and vehicle routing problems,'' Roskilde Univ., Roskilde, Denmark, Tech. Rep., 2017.
+\bibitem{voigt2025} S. Voigt, ``A review and ranking of operators in adaptive large neighborhood search for vehicle routing problems,'' \emph{Eur. J. Oper. Res.}, vol.~322, no.~2, pp.~357--375, 2025.
+\bibitem{christiaens2020} J. Christiaens and G. Vanden Berghe, ``Slack induction by string removals for vehicle routing problems,'' \emph{Transp. Sci.}, vol.~54, no.~2, pp.~417--433, 2020.
+\bibitem{kool2019} W. Kool, H. van Hoof, and M. Welling, ``Attention, learn to solve routing problems!'' in \emph{Proc. ICLR}, 2019.
+\bibitem{kwon2020} Y.-D. Kwon \emph{et al.}, ``POMO: Policy optimization with multiple optima for reinforcement learning,'' in \emph{Adv. NeurIPS}, vol.~33, 2020, pp.~21188--21198.
+\bibitem{luo2023} F. Luo, X. Lin, F. Liu, Q. Zhang, and Z. Wang, ``Neural combinatorial optimization with heavy decoder: Toward large scale generalization,'' in \emph{Adv. NeurIPS}, vol.~36, 2023.
+\bibitem{ye2024} H. Ye \emph{et al.}, ``GLOP: Learning global partition and local construction for solving large-scale routing problems in real-time,'' in \emph{Proc. AAAI}, vol.~38, no.~18, 2024, pp.~20284--20292.
+\bibitem{lan2024} L. Lan, J.~M.~H. van Doorn, N.~A. Wouda, A. Rijal, and S. Bhulai, ``An iterative sample scenario approach for the dynamic dispatch waves problem,'' \emph{Transp. Sci.}, vol.~58, no.~4, pp.~726--740, 2024.
+\bibitem{klapp2018} M.~A. Klapp, A.~L. Erera, and A. Toriello, ``The dynamic dispatch waves problem for same-day delivery,'' \emph{Eur. J. Oper. Res.}, vol.~271, no.~2, pp.~519--534, 2018.
+\bibitem{ulmer2021} M.~W. Ulmer, B.~W. Thomas, A.~M. Campbell, and N. Woyak, ``The restaurant meal delivery problem: Dynamic pickup and delivery with deadlines and random ready times,'' \emph{Transp. Sci.}, vol.~55, no.~1, pp.~75--100, 2021.
+\bibitem{ortools2025} V. Furnon and L. Perron, \emph{OR-Tools Routing Library}, v9.12. Google, 2025. [Online].
+
+\bibitem{herlihy1990} M.~P. Herlihy and J.~M. Wing, ``Linearizability: A correctness condition for concurrent objects,'' \emph{ACM Trans. Program. Lang. Syst.}, vol.~12, no.~3, pp.~463--492, 1990.
+\bibitem{gray1993} J. Gray and A. Reuter, \emph{Transaction Processing: Concepts and Techniques}. San Mateo, CA: Morgan Kaufmann, 1993.
+\bibitem{garciamolina1987} H. Garcia-Molina and K. Salem, ``Sagas,'' in \emph{Proc. ACM SIGMOD}, 1987, pp.~249--259.
+\bibitem{gilbert2002} S. Gilbert and N. Lynch, ``Brewer's conjecture and the feasibility of consistent, available, partition-tolerant web services,'' \emph{ACM SIGACT News}, vol.~33, no.~2, pp.~51--59, 2002.
+
+\bibitem{ivanov2021} D. Ivanov and A. Dolgui, ``A digital supply chain twin for managing the disruption risks and resilience in the era of Industry 4.0,'' \emph{Prod. Plann. Control}, vol.~32, no.~9, pp.~775--788, 2021.
+\bibitem{le2024} T.~V. Le and R. Fan, ``Digital twins for supply chain and logistics systems: Literature review, conceptual framework, research potential, and practical challenges,'' \emph{Comput. Ind. Eng.}, vol.~187, art.~109768, 2024.
+\bibitem{snoeck2022} A. Snoeck and M. Winkenbach, ``A discrete simulation-based optimization algorithm for the design of highly responsive last-mile distribution networks,'' \emph{Transp. Sci.}, vol.~56, no.~1, pp.~201--222, 2022.
+\bibitem{law2015} A.~M. Law, \emph{Simulation Modeling and Analysis}, 5th~ed. New York: McGraw-Hill, 2015.
+\bibitem{sargent2013} R.~G. Sargent, ``Verification and validation of simulation models,'' \emph{J. Simulation}, vol.~7, no.~1, pp.~12--24, 2013.
+\bibitem{li2011} L. Li, W. Chu, J. Langford, and X. Wang, ``Unbiased offline evaluation of contextual-bandit-based news article recommendation algorithms,'' in \emph{Proc. WSDM}, 2011, pp.~297--306.
+\bibitem{saltelli2008} A. Saltelli \emph{et al.}, \emph{Global Sensitivity Analysis: The Primer}. Chichester, U.K.: Wiley, 2008.
+\bibitem{imbens2015} G.~W. Imbens and D.~B. Rubin, \emph{Causal Inference for Statistics, Social, and Biomedical Sciences}. Cambridge, U.K.: Cambridge Univ. Press, 2015.
+\bibitem{abadie2010} A. Abadie, A. Diamond, and J. Hainmueller, ``Synthetic control methods for comparative case studies,'' \emph{J. Amer. Statist. Assoc.}, vol.~105, no.~490, pp.~493--505, 2010.
+
+\bibitem{fagan1976} M.~E. Fagan, ``Design and code inspections to reduce errors in program development,'' \emph{IBM Syst. J.}, vol.~15, no.~3, pp.~182--211, 1976.
+\bibitem{porter1995} A.~A. Porter, L.~G. Votta, and V.~R. Basili, ``Comparing detection methods for software requirements inspections: A replicated experiment,'' \emph{IEEE Trans. Softw. Eng.}, vol.~21, no.~6, pp.~563--575, 1995.
+\bibitem{basili1996} V.~R. Basili \emph{et al.}, ``The empirical investigation of perspective-based reading,'' \emph{Empirical Softw. Eng.}, vol.~1, no.~2, pp.~133--164, 1996.
+\bibitem{klein2007} G. Klein, ``Performing a project premortem,'' \emph{Harvard Bus. Rev.}, vol.~85, no.~9, pp.~18--19, 2007.
+\bibitem{flyvbjerg2006} B. Flyvbjerg, ``From Nobel Prize to project management: Getting risks right,'' \emph{Project Manage. J.}, vol.~37, no.~3, pp.~5--15, 2006.
+\bibitem{popper1959} K. Popper, \emph{The Logic of Scientific Discovery}. London, U.K.: Hutchinson, 1959.
+
+\end{thebibliography}
+
+\end{document}

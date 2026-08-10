@@ -1,70 +1,40 @@
-# ParaTwin — ParaExpress Digital Twin Simulator
+# paraexpress
 
-Desktop digital twin of the **ParaExpress** hyperlocal fulfillment network
-(ParagonCorp / ParaTech Platform R&D). Simulates the full order lifecycle —
-marketplace instant orders → wave routing → MFC/store-node picking → Grab/GoSend
-last mile — and turns the results into network, partnership and economics decisions.
+Brand-owned hyperlocal fulfillment network and digital twin for instant beauty commerce in Indonesia. ParaTech Platform R&D.
 
-Companion to the technical report *ParaExpress: A Mathematically Grounded
-Hyperlocal Fulfillment Network and Digital Twin Architecture* (`../paraexpress.pdf`).
+## Structure
 
-## Simulation models
+- `paratwin/` — the ParaTwin digital twin simulator: Rust engine, Tauri 2 desktop shell, Next.js frontend
+- `deliverables/` — the shipped technical report and its companion review
+- `prototypes/` — runnable scripts that reproduce every number in the report
+- `knowledge/` — source Revision 4, the review prompt, and the correction-to-source map
+- `docs/` — the Revision-5 correction backlog prompt (C-01…C-16) for ParaTwin
+- `tex/` — LaTeX source for the report, compiled with `./build-tex.sh`
 
-| Formalism | Where |
-|---|---|
-| Discrete-event simulation (DES) | `engine/src/des.rs` — event calendar over arrivals, waves, picks, couriers, replenishment, POS/ledger |
-| Agent-based modeling | courier agents (idle → to-pickup → to-drop) animated on the metro map |
-| Monte Carlo / probabilistic | spatial Poisson demand (Gaussian-mixture field), lognormal pick/match/travel, Bernoulli OTIF & carrier failure, R replications with Student-t 95% CIs |
-| State-flow | explicit order state machine (created → routed → picking → courier-matched → handover → delivered / downgraded / lost / oversell) |
-| Exact optimization | wave routing via min-cost flow (integral LP, Theorem 5); greedy submodular auto-layout (Theorem 2) |
+## Current state
 
-**Mathematically proven:** the *Model Validation* page runs live simulations and
-gates them against the report's closed forms (Erlang-C, Theorem 3's n\*, Eppen's
-√n pooling, square-root staffing). `cargo test -p paratwin-engine` additionally
-verifies M/M/1 P(wait)=ρ, Erlang table values, routing vs brute force, the
-report's Fig. 8 numbers, determinism, and the accounting identity.
+Revision 5 of the technical report is complete and verified. It supersedes Revision 4.
 
-## Tech stack
+Revision 5 corrects 5 results that were used outside the conditions under which they were proved, adds 3 results the design needed and did not have, replaces an acceptance gate that an incorrect model could pass, adds the demand experiment and kill criteria the program lacked, and registers 25 open items.
 
-- **Tauri 2** desktop shell (Mac `.dmg` / Windows NSIS `.exe`)
-- **Next.js 14 + React 18** frontend, **Nivo** charts, custom canvas animation
-- **Rust** engine (`engine/`), shared host layer (`host/`)
-- **SQLite** (scenarios, runs, KPI summaries) + **RocksDB** (animation frame
-  store & time series; key = run_id ‖ minute, LZ4)
+10 open items block Phase 0. See `deliverables/ParaExpress-Technical-Report/open-items-register.md`.
 
-## Develop
+## Build
 
 ```bash
-# 1. engine tests
-cargo test -p paratwin-engine --release
-
-# 2. browser dev mode (frontend + engine over HTTP)
-cargo run -p paratwin-devserver          # http://127.0.0.1:8787
-cd web && npm install && npm run dev     # http://localhost:3000
-
-# 3. desktop dev
-cd web && npx tauri dev
+./build-tex.sh
 ```
 
-## Build installers
+Compiles `tex/main.tex` with `tectonic` and writes `tex/output/main.pdf` (gitignored). The shipped copy in `deliverables/` is a snapshot of that output.
+
+`tectonic` is not vendored in this repo. The script takes it from `$TECTONIC` if set, otherwise from `PATH`:
 
 ```bash
-./web/node_modules/.bin/tauri build      # run from the paratwin/ root
-# If the styled DMG step fails (headless session), package it directly:
-./scripts/make-dmg.sh
+TECTONIC=/path/to/tectonic ./build-tex.sh
 ```
 
-Windows `.exe` (NSIS) cannot be cross-compiled from macOS: push this folder to
-GitHub and run the **Build ParaTwin installers** workflow
-(`.github/workflows/build-installers.yml`) — it produces macOS arm64/x64 `.dmg`
-and Windows NSIS installers on native runners.
+For the simulator, see `paratwin/README.md`.
 
-## Layout
+## Notes
 
-```
-engine/     pure Rust simulation + analytics (no I/O)
-host/       SQLite + RocksDB persistence, service functions
-devserver/  axum HTTP mirror of the Tauri commands (browser dev/testing)
-src-tauri/  Tauri v2 app (commands, icons, bundling)
-web/        Next.js UI (dashboard, scenarios, runner, results, decisions, math)
-```
+`GOALS.md` holds project scope, milestones and done criteria.

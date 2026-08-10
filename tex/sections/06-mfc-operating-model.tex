@@ -1,0 +1,87 @@
+\section{MFC Operating Model}\label{sec:mfc}
+
+\subsection{Location Strategy: Strategic, Not Expensive}
+Proposition~\ref{prop:radius} shows the binding quantity is the drive-time radius, not street frontage. Because an MFC has no walk-in traffic, it can occupy Class-B/C space---inner second-row shophouses (\emph{ruko}), light-industrial mezzanines, or the back rooms of existing consignment partners---selected by three filters: (i) centroid of a demand cell in the (P1) solution; (ii) motorcycle access to arterials in all catchment directions (isochrone, not Euclidean, coverage); (iii) rent $\le30$--40\% of equivalent retail frontage. \OPEN{2026 Jakarta Class-B/C rent per m$^2$ for 150--300\,m$^2$ light-industrial and ruko space, and the resulting validated range for the fixed-cost line in Table~\ref{tab:econ}}{Head of Network Expansion}{Phase 1 gate}
+
+\subsection{Format Ladder and Assortment}
+Table~\ref{tab:formats} specifies the three Tier-2 formats. Assortments are computed per node by Theorem~\ref{thm:assortment}: rank SKUs by catchment-level captured revenue rate $r_{fk}$, fill the slot budget, then apply brand-block completion so that advertised ``hero'' baskets are never split, and finally verify that the resulting assortment satisfies the order-fill requirement of Proposition~\ref{prop:orderfill} at the catchment's basket-size distribution. A weekly re-optimization reallocates slow slots; beauty's low obsolescence makes mis-slotting cheap to reverse via the next replenishment wave.
+
+\begin{table}[t]
+\caption{Tier-2 Fulfillment Node Formats. Throughput and staffing figures marked $^{\mathrm{R5}}$ are revised; see the note below the table.}
+\label{tab:formats}
+\centering\footnotesize
+\begin{tabular}{@{}lp{1.9cm}p{1.9cm}p{1.9cm}@{}}
+\toprule
+& \textbf{Store node} & \textbf{Dark MFC} & \textbf{Flagship MFC}\\
+\midrule
+Space & $\le5$\,m$^2$ in-store & 150--300\,m$^2$ & 400--600\,m$^2$\\
+SKUs (slots) & 150--300 & 400--600 & 800--1,200\\
+Fixed cost & ${\approx}0$ (rev.\ share) & low (Class-B/C rent) & moderate\\
+Staffing & shared store staff$^{\mathrm{R5}}$ & 2--6 pickers/shift & 6--15 pickers/shift\\
+Throughput $\mu_f$ & \OPEN{measured}{Ops}{Ph.1}$^{\mathrm{R5}}$ & 20--60 orders/h & 60--150 orders/h\\
+Pick time target & $\le7$\,min & $\le5$\,min & $\le5$\,min\\
+Role & coverage endowment & PX1 workhorse & long tail + PX2\\
+Systems & Exagon + PX app & Heron Lite & Heron Lite\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{remark}[$^{\mathrm{R5}}$ Store-node throughput is not yet a number]
+Revision~4 specified store nodes at 5--10 orders/hour with a $\le7$-minute pick target, staffed by existing store staff at zero incremental fixed cost. Ten orders per hour at seven minutes each is seventy minutes of picking work per hour, drawn from a person who is simultaneously serving walk-in retail. The throughput figure and the staffing model are not jointly satisfiable, and the accuracy-scoring mechanism of Section~\ref{sec:solution} penalizes the partner for a failure the capacity arithmetic creates. Revision~5 therefore removes the asserted range. Store-node $\mu_f$ must be derived from a measured share of staff time under observed walk-in traffic, and the Order Routing Engine caps allocation at the measured value. \OPEN{measured store-node picking capacity: staff-time share available for ParaExpress picking under observed walk-in traffic, by store archetype and hour of day}{Head of Consignment Operations}{Phase 1 gate}
+\end{remark}
+
+\subsection{In-Node Process and Layout}
+The design target from Proposition~\ref{prop:radius} is $t^{q}_{\mathrm{node}}$ small enough that \eqref{eq:radius} yields a viable radius at the optimal risk split. This is achieved with: velocity-slotted shelving (top-50 SKUs within 3\,m of the pack bench, mirroring the 2--3-minute pick discipline of Indian quick commerce); single-piece-flow pick carts with pick-to-light-lite (phone flash + shelf QR); pre-printed courier bags by promise class; and \emph{courier pre-matching}---the Grab booking is fired at pick start, not pack end, overlapping $T_{\mathrm{handover}}$ with $T_{\mathrm{pick}}$. Staffing per shift follows \eqref{eq:staffing}, including the wave-batching inflation; ParaTwin continuously re-estimates $\nu$, $\lambda_f$ and $\Delta$, and publishes next-week rosters.
+
+\subsection{Returns and Failed Deliveries}\label{sec:returns}
+$^{\mathrm{R5}}$ Revision~4 handled returns in a single capability line and gave them no node-level operating model, no cost line and no calibration feed. Beauty carries material non-delivery and refusal rates in Indonesian e-commerce, and a returned unit at a store node consumes exactly the constrained resources the node was selected for: shelf space, partner staff time, and ledger correctness. Revision~5 specifies:
+
+\begin{enumerate}
+\item \textbf{Custody.} A failed delivery returns to the \emph{originating} node, never to Tier 1, unless the node is at slot capacity.
+\item \textbf{QC gate.} Return-to-stock requires a seal-integrity check and a photo record in Heron Lite or the Exagon PX app before the ledger increment; failed QC routes to a quarantine slot and a write-off workflow.
+\item \textbf{Ledger.} The increment is a normal ATP transaction under Proposition~\ref{prop:atp}, so a return in flight holds a reserved-negative position rather than being invisible.
+\item \textbf{Economics.} Return handling carries an explicit per-order cost line in Table~\ref{tab:econ} and a rate assumption. \OPEN{observed non-delivery and return rates for ParagonCorp B2C beauty orders by channel and payment method}{Data Lead}{Phase 1 gate}
+\item \textbf{Calibration.} Returns are a first-class ParaTwin feed (Table~\ref{tab:contracts}), so the twin sees the cost it must optimize against.
+\end{enumerate}
+
+\subsection{Intra-Day Lateral Replenishment}\label{sec:lateral}
+$^{\mathrm{R5}}$ Under \eqref{eq:basestock} with a daily review period, a hero SKU exhausted mid-morning is unavailable at that node until the next wave, and Revision~4's only stated recoveries were promise downgrade or substitution. This is a capability gap rather than a constraint: Section~\ref{sec:business} already specifies intra-day emergency replenishment \emph{for nearby B2B doors} as a revenue line, so the mechanism exists and was not being used for ParaExpress's own nodes. Revision~5 adds a lateral transfer path between Tier-2 nodes, priced by the Order Routing Engine against the alternative of downgrading the order, and executed under the cross-partition commit rule (C3) of Proposition~\ref{prop:atp}. The transfer is triggered when the expected downgrade cost over the remainder of the review period exceeds the transfer cost.
+
+\subsection{Node Economics}
+Table~\ref{tab:econ} gives the illustrative steady-state P\&L per dark MFC that ParaTwin must validate before each opening. \textbf{Every figure in this table is a design target, not a commitment, and Revision~5 does not use it as an acceptance threshold} (see Section~\ref{sec:roadmap}).
+
+\begin{table}[t]
+\caption{Illustrative Dark-MFC Monthly Economics (design targets). Lines marked $^{\mathrm{R5}}$ were absent or ambiguous in Revision~4.}
+\label{tab:econ}
+\centering\footnotesize
+\begin{tabular}{@{}p{4.6cm}p{3.3cm}@{}}
+\toprule
+\textbf{Item} & \textbf{Value}\\
+\midrule
+Orders/day (steady state) & 250\\
+Average order value (AOV) & IDR 220,000\\
+AOV distribution$^{\mathrm{R5}}$ & \OPEN{distribution, not mean}{Data Lead}{Ph.1}\\
+Gross margin before fulfillment & 40--55\% (owned brands)\\
+\quad of which channel commission$^{\mathrm{R5}}$ & \OPEN{inside or outside this line}{Commercial Lead}{Ph.0}\\
+Rider fee net of consumer delivery fee & IDR 8,000--14,000/order\\
+Delivery-fee subsidy rate$^{\mathrm{R5}}$ & \OPEN{assumed subsidy \%}{Commercial Lead}{Ph.0}\\
+Pick--pack labour (sq-root staffed) & IDR 4,000--6,000/order\\
+Packaging and QR seal$^{\mathrm{R5}}$ & \OPEN{per-order cost}{Ops}{Ph.1}\\
+Returns handling$^{\mathrm{R5}}$ & \OPEN{rate $\times$ unit cost}{Ops}{Ph.1}\\
+Inventory carrying cost$^{\mathrm{R5}}$ & \OPEN{$h$ per unit-period}{Finance}{Ph.1}\\
+Rent + utilities (Class B/C, 200\,m$^2$) & IDR 35--60M/month\\
+Labour employment model$^{\mathrm{R5}}$ & \OPEN{employee / vendor / 3PL}{HR + Ops}{Ph.1}\\
+Shrinkage + cycle-count allowance (MFC) & $\le0.3\%$ of sales\\
+Shrinkage allowance (store node)$^{\mathrm{R5}}$ & \OPEN{separate figure required}{Ops}{Ph.1}\\
+\midrule
+Contribution after fulfillment & IDR 55,000--90,000/order\\
+Fixed-cost break-even & \emph{see note}$^{\mathrm{R5}}$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{remark}[$^{\mathrm{R5}}$ The break-even figure does not follow from the table]
+Revision~4 stated a break-even of approximately 40--80 orders/day. Fixed cost of IDR 35--60M per month is IDR 1.17--2.0M per day; at a contribution of IDR 55,000--90,000 per order that implies 13--36 orders/day. The stated 40--80 is not reachable from the other lines in the same table without a cost line that the table does not show. Revision~4 may have loaded picker shifts into the fixed base, but pick--pack labour is already charged per order inside the contribution line, so doing so without stating the fixed/variable split double-counts it. Revision~5 removes the figure rather than reconciling it with an invented line, and requires the derivation to be published with every cost element named. \OPEN{line-by-line break-even derivation for each node format, with every element of the fixed base enumerated}{Finance + Head of Platform R\&D}{Phase 1 gate}
+
+The category-structural argument that motivated the figure is unaffected and is retained as a hypothesis: because beauty AOV (IDR 150--350k) is 2--4$\times$ grocery AOV while parcels are small, the model should clear break-even at materially lower order density than grocery dark stores. That is the central reason a category specialist can win where generalists struggle, and experiment E7 (Section~\ref{sec:twin}) is designed to test it rather than assume it.
+\end{remark}

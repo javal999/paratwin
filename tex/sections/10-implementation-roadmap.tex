@@ -1,0 +1,34 @@
+\section{Implementation Roadmap}\label{sec:roadmap}
+
+The rollout follows lesson L5 (density before geography) and is twin-gated at every phase. $^{\mathrm{R5}}$ Revision~4 gave acceptance gates to Phases 0--2 and none to Phases 3--4, tested Phase~1 economics against twin agreement rather than against the design target, and contained no condition under which the program stops. All four are corrected.
+
+\textbf{Phase 0 --- Foundations (months 0--4).} Build VIS/DOM and ORE cores; Exagon+ store app with heartbeats; ShipGo+ Grab/GoSend integration; ParaTwin v1 calibrated on MagPie/Tegal history; select the pilot metro (South Jakarta cluster) and run E1--E3 and \textbf{E7}.
+\emph{Gate:} twin certification (trace-replay $\le10\%$ deviation, holdout pass, independent policy check); \textbf{and} closure of the eight Phase-0-exit open items O-1 through O-7 and O-23 (Section~\ref{sec:open}), with O-8 and O-25 already closed at Phase~0 start.
+
+\textbf{Phase 1 --- Pilot (months 4--9).} Activate 15--25 consignment store nodes, 2 dark MFCs and 1 flagship MFC in the pilot cluster; brand.com and one marketplace instant program live; run \textbf{E8}.
+\emph{Gate:} PX1 $\alpha\ge0.93$ observed \emph{at the order level} (Proposition~\ref{prop:orderfill}); contribution per order $\ge$ the published design-target floor \emph{in absolute terms}, with twin agreement reported separately as a calibration statistic rather than as the acceptance test; store-node pick SLA $\ge90\%$; store-node shrink within the separately stated allowance; E8 incrementality ratio above the published threshold.
+
+\textbf{Phase 2 --- Jakarta scale-out (months 9--18).} Expand to $\max(n_{\min},n^\star)$ nodes for Jabodetabek under the two-stage rule of Section~\ref{sec:arch}-\ref{sec:sizing}; PX2 batched runs and dual-carrier failover live.
+\emph{Gate:} network contribution positive; promise-shown rate $\ge80\%$ of metro zone-hours; direct-channel share at or above its stated target (the named mitigation for marketplace program dependence, which Revision~4 listed without a measurable form).
+
+\textbf{Phase 3 --- Multi-metro (months 18--30).} Bandung, Surabaya, Medan, Makassar as regional hubs plus MOSTRANS waves; own-fleet threshold review per cluster; B2B same-day synergy live.
+\emph{Gate}$^{\mathrm{R5}}$\emph{:} per-metro re-estimation of $\Lambda$, $\sigma$, $\rho$, $\eta$ and the in-node and travel quantile functions \emph{before} each metro commits, with $n^\star$ and $n_{\min}$ recomputed from local parameters; Jakarta network contribution sustained positive for two consecutive quarters; no metro launches on Jakarta parameters.
+
+\textbf{Phase 4 --- Moat (months 30+).} Anticipatory placement (campaign-aware pre-positioning ahead of live-commerce events); ParaExpress-as-a-service for adjacent halal FMCG brands.
+\emph{Gate}$^{\mathrm{R5}}$\emph{:} anticipatory placement demonstrates positive expected value in twin backtest against reactive placement before any capital commitment; third-party service opens only where ParagonCorp volume alone already clears node break-even, so external demand is upside rather than a dependency.
+
+\subsection{$^{\mathrm{R5}}$ Kill Criteria}
+Revision~4 stated no condition under which the program should stop, so its gates could only certify that a well-run pilot was well run. The program halts and returns to the marketplace-independent direct-channel scope if any of the following holds:
+
+\begin{enumerate}
+\item \textbf{Demand.} E7 shows instant attach rate or conversion lift below the level at which a node reaches its published break-even volume within the Phase-2 horizon, at a delivery fee consumers accept.
+\item \textbf{Access.} O-1 resolves negatively at both major marketplaces and direct channels cannot reach the volume threshold in (1).
+\item \textbf{Partner supply.} Recruitment conversion is such that the pilot cluster cannot reach $n_{\min}$ from Proposition~\ref{prop:radius} with store nodes plus economically justified MFCs.
+\item \textbf{Incrementality.} E8 shows the incremental share of store-node volume below the level at which the program is margin-positive against the walk-in counterfactual.
+\item \textbf{Unit economics.} Observed contribution per order is below the design-target floor for two consecutive quarters after the pilot ramp, with no identified and costed remediation.
+\end{enumerate}
+
+Each criterion names a measured quantity, a threshold to be published before the measurement is taken, and the experiment that produces it. \OPEN{numeric thresholds for kill criteria 1--5, published before Phase 0 experiments read out}{Head of Platform R\&D + Finance}{Phase 0 start}
+
+\subsection{Risks and Mitigations}
+Principal risks and their mitigations: \emph{store data quality} (Proposition~\ref{prop:atp} buffers, effective-latency observation, allocation suspension, locked shelf units); \emph{courier surge and supply} (dual carrier with jointly modelled availability, pre-matching, promise degradation as the real hedge, own-fleet trigger rule); \emph{marketplace program dependence} (direct channels grown against a stated share target and a Phase-2 gate, plus the fallback scope in kill criterion 2); \emph{cannibalization of B2B doors} (measured by E8, not argued); \emph{demand overestimation} (phase gates twin-calibrated with holdout validation, E7 ahead of capital, every node opening reversible because leases are short and store nodes are contractual addenda); \emph{decision-model error} (independent policy check and off-policy scoring, Section~\ref{sec:twin}); \emph{ledger unavailability} (degraded reservation mode, principle P-6).

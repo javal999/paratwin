@@ -1,5 +1,5 @@
-# Rust
-/target/
+# Rust (paratwin/ is a cargo workspace)
+target/
 **/*.rs.bk
 
 # Node / Next.js
@@ -11,7 +11,6 @@ out/
 next-env.d.ts
 
 # Tauri build output
-src-tauri/target/
 src-tauri/gen/
 
 # Local data stores (SQLite scenarios/runs, RocksDB frame store)
@@ -19,6 +18,18 @@ src-tauri/gen/
 *.sqlite-journal
 *.db
 /data/
+
+# LaTeX build output — build-tex.sh regenerates this.
+# The shipped snapshot lives in deliverables/ and IS tracked.
+tex/output/
+*.aux
+*.log
+*.toc
+*.synctex.gz
+
+# Stale full duplicate of paratwin/ left over from the paraexpress copy.
+# Byte-identical to paratwin/ at the time it was ignored; kept on disk only.
+deliverables/paratwin/
 
 # Env
 .env

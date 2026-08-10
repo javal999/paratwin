@@ -1,0 +1,60 @@
+\section{Solution Specification: Systems and Capabilities}\label{sec:solution}
+
+ParaExpress is realized by extending the four existing systems and adding three new platform services. The mapping is deliberate: each mathematical object of Section~\ref{sec:structural} has exactly one system of record---(P1)/(P2) live in ParaTwin, (P3) and the commitment rule in the Order Routing Engine, ATP (Proposition~\ref{prop:atp}) in the Virtual Inventory Service, \eqref{eq:basestock} and \eqref{eq:betastar} in replenishment planning, and \eqref{eq:staffing} in Heron Lite labour planning.
+
+\subsection{MagPie+ (B2C Order Management System)}
+MagPie remains the order system of record and gains: a Promise API (ADR) available-to-deliver by zone $\times$ promise class; a promise waterfall (PX1 $\to$ PX2 $\to$ PX3 re-quote, never promise-then-cancel); channel adapters with idempotent order ingestion; an extended order state machine (\texttt{ROUTED}, \texttt{PICKING}, \texttt{COURIER\_MATCHED}, \texttt{HANDOVER}, \texttt{DELIVERED} with per-state SLA clocks); the returns workflow of Section~\ref{sec:mfc}-\ref{sec:returns}; and an SLA cockpit with breach root-cause tags feeding ParaTwin.
+
+\subsubsection*{$^{\mathrm{R5}}$ ADR staleness contract}
+Revision~4 served the checkout promise from an ADR cache computed from live ATP, routing feasibility and courier ETA, without stating a staleness bound for any input. A promise computed from a stale cache is a static promise with extra steps, and the fastest-moving input governs. Revision~5 specifies a per-input bound: stock availability $\le30$\,s, node feasibility and capacity $\le30$\,s, and \textbf{courier availability and ETA $\le5$\,s}, because carrier supply moves faster than stock during surge and rain. An ADR entry whose courier input has exceeded its bound degrades to the PX2 promise rather than continuing to advertise PX1. This is the P-6 behaviour for the single most conversion-sensitive surface in the system.
+
+\subsection{Heron Lite (MFC Warehouse Management)}
+Full Heron is engineered for the Tegal parcel DC; MFCs need a stripped, tablet-first profile---\emph{Heron Lite}---sharing Heron's item master and stock ledger: wave-less single-order picking with dynamic pick-path (velocity slotting from Theorem~\ref{thm:assortment} outputs); QR shelf labels and scan-verified picks; pack-bench QC with photo evidence for marketplace dispute defense; blind cycle counting scheduled by ABC class (A daily, B weekly, C monthly); labour planning via \eqref{eq:staffing} with shift templates; and offline-tolerant operation for connectivity dips, subject to condition (C2) of Proposition~\ref{prop:atp}. \OPEN{Heron's current pick accuracy and pick-time baselines at Tegal, as the reference the MFC targets are measured against}{Head of Warehouse Systems}{Phase 0 exit}
+
+\subsection{Exagon+ (Consignment System): the Store-Node Enabler}
+Exagon already tracks consignment stock and settlement; activating stores as fulfillment nodes adds: a \emph{reserved virtual location} per store, physically a locked shelf unit and logically a distinct ledger partition never commingled with floor stock; a \emph{PX store app} for accept/pick/pack/handover; \emph{POS sale posting} within latency $\ell$ to honor Proposition~\ref{prop:atp}; \emph{liveness heartbeats} that make $\ell^{\mathrm{eff}}$ of \eqref{eq:elleff} observable and drive condition (C2); \emph{accuracy scoring} feeding order allocation; and \emph{settlement} of per-order pick fees and consignment margin in the existing statement cycle.
+
+\subsubsection*{$^{\mathrm{R5}}$ Partner viability is a precondition, not a consequence}
+The asks above---reserved stock, a locked shelf, an app, a 7-minute pick SLA, 5-minute POS posting, cycle-count duty, and an accuracy score that reduces allocation---constitute a change to a partner's daily operating routine, staffing and physical layout, in exchange for a per-order fee, executed through an addendum to an existing consignment agreement. Revision~4 assumed recruitment was not the binding constraint on a Phase~1 target of 15--25 store nodes. Revision~5 requires a partner-side P\&L, a measured sign-up rate from a recruitment pre-test, and a specified exit path for a node that signs and then does not comply, before Phase~1 commits. \OPEN{partner-side P\&L, recruitment pre-test conversion rate, and non-compliance exit procedure}{Head of Consignment Operations}{Phase 0 exit}
+
+\subsection{ShipGo+ (Transportation Management System)}
+ShipGo extends from mid-mile TMS to a dual-clock transport brain: (i) \emph{on-demand module}---Grab/GoSend rate shop and booking with courier pre-matching fired at pick start, ETA ingestion, webhook tracking, surge-aware carrier choice, and auto-failover between carriers; (ii) \emph{batched module}---PX2 orders consolidated into multi-pickup multi-delivery runs (PDPTW: paired pickup/delivery, precedence, capacity $\le8$ drops, promise-window deadlines \cite{ropke2006}); batches form by proximity, routes are built by savings-based construction \cite{clarke1964} with 2-opt/Or-opt improvement and regret-2 insertion for rolling re-optimization \cite{klapp2018,ropke2006}; (iii) \emph{mid-mile module}---daily replenishment waves hub$\to$nodes tendered to MOSTRANS with e-POD, handling flags and SLA penalty tracking; (iv) \emph{control tower}---courier exception detection with automatic re-booking inside the SLA clock.
+
+\subsection{VIS/DOM: Virtual Inventory and Distributed Order Management (New)}
+The VIS is the single linearizable ledger of Proposition~\ref{prop:atp}: network-wide ATP per (node, SKU, promise class), with atomic reserve/release, protection buffers, effective-latency computation per \eqref{eq:elleff}, allocation suspension under (C2), event-sourced audit, and back-pressure semantics so a channel can never oversell a node. The DOM half owns cross-node policies: split-shipment rules, node-down rebalancing, safety-stock substitution, lateral replenishment (Section~\ref{sec:mfc}-\ref{sec:lateral}) and marketplace stock-feed publication---all executed under the cross-partition commit discipline (C3).
+
+\subsubsection*{$^{\mathrm{R5}}$ Availability, not only durability}
+Revision~4 specified the VIS at 99.99\% availability with synchronous replication (RPO 0) on a single-writer-per-node partition, and gave a recovery-time objective for MagPie+ but not for the VIS. Synchronous replication protects durability; it does not protect availability, and a partition whose writer is unavailable blocks every order for its node until failover completes. A 99.99\% monthly budget is roughly 4.4 minutes, so a single multi-minute failover exhausts a quarter's budget. Revision~5 adds: (a) a stated VIS RTO with automated leader election; (b) a \emph{degraded reservation mode} in which an unreachable partition causes the affected nodes to leave $\mathcal{F}(o)$ and the order to re-quote as PX2/PX3, reconciling on recovery---this is principle P-6 applied to the ledger; and (c) an explicit statement that the design chooses consistency over availability at the partition level and recovers availability at the \emph{promise} level rather than at the ledger level \cite{gilbert2002}. \OPEN{VIS recovery-time objective and measured failover time under leader loss}{Head of Platform Engineering}{Phase 1 gate}
+
+\subsection{ORE: Order Routing Engine (New)}
+The ORE implements Theorem~\ref{thm:routing}: micro-batched min-cost-flow assignment over feasible (order, node) pairs with cost $c_{of}=$ courier quote $+$ congestion shadow price $-$ inventory-displacement penalty $-$ node-accuracy bonus, under the commitment rule of Section~\ref{sec:structural}-\ref{sec:commit}. The solver is deterministic, $\le100$\,ms per wave, with decision logging. $^{\mathrm{R5}}$ Two additions: the decision log is \emph{target-aware}---a logged decision may be replayed into ParaTwin but never into the live VIS without explicit re-authorization, closing the double-reservation path that at-least-once bus delivery would otherwise leave open; and the reservation TTL is a stated, monitored parameter rather than an unspecified one. \OPEN{reservation TTL per promise class, and the reconciliation procedure on TTL expiry mid-pick}{Head of Platform Engineering}{Phase 1 gate}
+
+\subsection{Routing Algorithm Portfolio}
+ParaExpress contains three distinct routing surfaces, and each gets the algorithm class that the state of the art prescribes for its structure and latency budget: PX1 order routing is an integral LP (Theorem~\ref{thm:routing}) solved exactly, so no heuristic sits on the critical path; PX2 same-day batches are a PDPTW solved by savings construction plus 2-opt/Or-opt and regret-2 insertion \cite{clarke1964,ropke2006}; mid-mile waves are a CVRP benchmarked offline against HGS/PyVRP \cite{vidal2022,wouda2024} with LKH-3 cross-check \cite{helsgaun2017} and OR-Tools as the reference baseline \cite{ortools2025}; and the dynamic layer uses rolling-horizon re-optimization with postponement and scenario sampling \cite{klapp2018,ulmer2021,lan2024}. Classical metaheuristics are retained over learned constructive solvers: neural methods have narrowed the gap and now lead certain very-large real-time regimes \cite{kool2019,kwon2020,luo2023,ye2024}, but on CVRP/PDPTW instances at ParaExpress scale hand-crafted search remains the solution-quality benchmark \cite{vidal2022,voigt2025,christiaens2020}, and the EURO Meets NeurIPS 2022 dynamic-VRP outcome---where scenario sampling over a strong static solver beat all learning-based entries \cite{lan2024}---supports the same choice for the dynamic layer.
+
+\subsection{Non-Functional Requirements}
+Table~\ref{tab:nfr} states the binding non-functional requirements. $^{\mathrm{R5}}$ Revision~4 gave per-service latency targets only; because summed per-service p99 values are not the p99 of a composed path, Revision~5 adds a composed order-to-pick-start budget as its own tested requirement, and adds a recovery-time objective and a degraded mode to every service on the order path.
+
+\begin{table}[t]
+\caption{Non-Functional Requirements per Service. Rows marked $^{\mathrm{R5}}$ are new or revised.}
+\label{tab:nfr}
+\centering\footnotesize
+\begin{tabular}{@{}p{1.35cm}p{0.95cm}p{0.75cm}p{1.05cm}p{2.5cm}@{}}
+\toprule
+\textbf{Service} & \textbf{Avail.} & \textbf{p99} & \textbf{RTO}$^{\mathrm{R5}}$ & \textbf{Degraded mode}$^{\mathrm{R5}}$\\
+\midrule
+MagPie+ & 99.95\% & 50\,ms & 15\,min & Queue orders; promise from last-good ADR at PX2\\
+ORE & 99.9\% & 100\,ms & \OPEN{}{Plat.\ Eng}{Ph.1} & Fall back to nearest-feasible node; log regret\\
+VIS/DOM & 99.99\% & 10\,ms & \OPEN{}{Plat.\ Eng}{Ph.1} & Affected nodes leave $\mathcal{F}(o)$; order re-quotes PX2/PX3\\
+Heron Lite & 99.5\% & 1\,s & --- & Offline $\le4$\,h with store-and-forward, subject to (C2)\\
+Exagon+ PX & 99.5\% & 1\,s & --- & Heartbeat gap triggers (C2) allocation suspension\\
+ShipGo+ & 99.9\% & 2\,s & --- & Carrier failover; then promise degradation\\
+ADR cache$^{\mathrm{R5}}$ & 99.95\% & 50\,ms & --- & Courier input stale $>5$\,s $\Rightarrow$ advertise PX2\\
+ParaTwin & batch & --- & --- & Nightly master sync; no production dependency\\
+\midrule
+\textbf{Composed order$\to$pick start}$^{\mathrm{R5}}$ & --- & \OPEN{target}{Plat.\ Eng}{Ph.1} & --- & Tested end-to-end, not by summing components\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Deployment topology is unchanged from Revision~4: stateless services on a container platform across two Jakarta availability zones (active--active), a Kafka-class event bus with at-least-once delivery, idempotency keys and per-entity ordering, per-service databases, and the transactional-outbox pattern so bus publication and database commit are atomic. Security is mTLS + OAuth2 with role-based access at node granularity; consumer PII is minimized, with delivery addresses tokenized and materialized only in ShipGo+ at booking time, then purged after proof-of-delivery retention.

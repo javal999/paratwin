@@ -1,0 +1,41 @@
+\section{Open Items Register}\label{sec:open}
+
+Table~\ref{tab:open} registers every fact this specification requires and nobody has yet confirmed. The register exists because a technical document that fills an unknown with a plausible number produces a design that runs and is quietly wrong; a visible hole with an owner and a date stops the decision instead. Ten items block Phase~0. Eight must close before Phase~0 exits---O-1 through O-7 and O-23---because each can invalidate a downstream decision that Phase~1 would otherwise take on a guess. Two must close before Phase~0 \emph{starts}: O-8, because a kill threshold published after the measurement is not a kill threshold, and O-25, because an item with a role but no person has no owner.
+
+\begin{table}[t]
+\caption{Open Items Register. \emph{Blocks} names the earliest decision that cannot be taken until the item closes.}
+\label{tab:open}
+\centering\footnotesize
+\begin{tabular}{@{}p{0.5cm}p{4.0cm}p{1.5cm}p{1.0cm}@{}}
+\toprule
+\textbf{ID} & \textbf{Question} & \textbf{Owner (role)} & \textbf{Blocks}\\
+\midrule
+O-1 & Written marketplace confirmation that seller-fulfilled instant from brand nodes is permitted, and courier terms & Commercial Lead & Ph.\ 0 exit\\
+O-2 & Instant attach rate, conversion lift, delivery-fee elasticity for beauty (E7) & Commercial Lead & Ph.\ 0 exit\\
+O-3 & Distinct-SKU basket-size distribution $p_j$ (drives $\beta^\star$, Prop.~\ref{prop:orderfill}) & Data Lead & Ph.\ 0 exit\\
+O-4 & Grab/GoSend commercial rate card at projected volume tier & Commercial Lead & Ph.\ 0 exit\\
+O-5 & Consignment partner-side P\&L, recruitment pre-test conversion, non-compliance exit path & Consignment Ops & Ph.\ 0 exit\\
+O-6 & Heron pick-accuracy and pick-time baselines at Tegal & Warehouse Systems & Ph.\ 0 exit\\
+O-7 & Whether channel commission sits inside or outside the 40--55\% gross-margin line & Commercial Lead & Ph.\ 0 exit\\
+O-8 & Numeric thresholds for kill criteria 1--5, published before readout & R\&D + Finance & Ph.\ 0 start\\
+\midrule
+O-9 & Measured packing/overlap efficiency $\eta$ per metro & Data Lead & Ph.\ 1 gate\\
+O-10 & Fitted in-node time and effective-speed quantile functions & Data Lead & Ph.\ 1 gate\\
+O-11 & Fitted zone-demand equicorrelation $\rho$ by hour and campaign state & Data Lead & Ph.\ 1 gate\\
+O-12 & Single-brand basket share by count \emph{and} by revenue ($\epsilon$, $\epsilon_{\mathrm{rev}}$) & Data Lead & Ph.\ 1 gate\\
+O-13 & Basket-value distribution and the node-activation contribution floor & Data Lead & Ph.\ 1 gate\\
+O-14 & Measured store-node picking capacity under observed walk-in traffic & Consignment Ops & Ph.\ 1 gate\\
+O-15 & POS posting-latency and connectivity-uptime distribution across partners & Consignment Ops & Ph.\ 1 gate\\
+O-16 & VIS RTO and measured failover time; reservation TTL; composed order-to-pick p99 & Platform Eng & Ph.\ 1 gate\\
+O-17 & Missing P\&L lines: returns rate and cost, packaging, carrying cost $h$, employment model, store-node shrink allowance, rent validation, break-even derivation & Finance + Ops & Ph.\ 1 gate\\
+O-18 & Joint availability and price correlation of Grab and GoSend & Data Lead & Ph.\ 1 gate\\
+O-19 & Minimum back-room footprint holding one week of instant demand (Rev.~4's 20--40\,m$^2$ matches no format) & Platform R\&D & Ph.\ 1 gate\\
+O-20 & Proof or counterexample: submodularity of the splittable capacitated coverage value & Platform R\&D & Ph.\ 1 exit\\
+O-21 & Own-fleet cost model and the equation behind the threshold & Finance + Commercial & Ph.\ 2 gate\\
+O-22 & AOV \emph{distribution} (not mean) by catchment & Data Lead & Ph.\ 1 gate\\
+O-23 & Assumed delivery-fee subsidy rate & Commercial Lead & Ph.\ 0 exit\\
+O-24 & Regulatory review: BPOM storage and traceability at Tier-2 nodes; halal-chain integrity across consignment partners & Regulatory Affairs & Ph.\ 1 gate\\
+O-25 & Named individual owners against every role in this table & Head of Platform R\&D & Ph.\ 0 start\\
+\bottomrule
+\end{tabular}
+\end{table}

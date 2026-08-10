@@ -1,0 +1,40 @@
+\section{Business Model and Strategic Partnerships}\label{sec:business}
+
+\subsection{The B2C Business Model}
+ParaExpress is a \emph{fulfillment capability}, not a new storefront. ParagonCorp does not attempt to out-app Shopee; it makes every existing channel faster.
+
+\textbf{Marketplace instant (primary).} On Shopee and TikTok Shop/Tokopedia, official ParagonCorp brand stores enroll in each platform's instant/same-day program. The marketplace remains the demand front end and payment rail; the order is fulfilled by the nearest ParaExpress node, with the platform's instant courier or a ParaExpress-booked rider performing the last mile according to the program's integration mode. \textbf{This entire channel is conditional on open item~O-1} (Section~\ref{sec:open}); Revision~5 additionally specifies the fallback in Section~\ref{sec:roadmap}.
+
+\textbf{Direct channels.} Brand.com sites and WhatsApp commerce quote the PX1/PX2 promise natively, capturing full margin and first-party data. Because these channels are not conditional on a marketplace program, they carry the demand-side experiment E7 and are the hedge against O-1 resolving negatively.
+
+\textbf{O2O for consignment partners.} A store node also serves \emph{its own} walk-in customers' delivery requests, giving partner stores an instant-commerce capability they could not build alone.
+
+\textbf{B2B synergy.} The same nodes serve same-day emergency replenishment orders from nearby B2B doors, monetizing idle inter-peak capacity; this is the same mechanism now also used internally for lateral replenishment (Section~\ref{sec:mfc}-\ref{sec:lateral}).
+
+\subsection{$^{\mathrm{R5}}$ Incrementality Is Not Assumed}
+Revision~4 presented the store-node program as a partner benefit in one section and listed cannibalization of B2B doors as a risk in another, without reconciling them or estimating either. Both cannot hold at full magnitude: if the consignment store would have made the sale over the counter, ParagonCorp is paying a per-order fulfillment fee plus a rider fee for revenue it already had. Revision~5 makes incrementality a measured quantity rather than an argument. Experiment E8 (Section~\ref{sec:twin}) is a matched-market holdout against non-participating stores of similar archetype and catchment, analysed as a treatment-effect estimate \cite{imbens2015} with a synthetic-control cross-check \cite{abadie2010}, and the Phase~2 gate is conditioned on its result.
+
+\subsection{Strategic Partnership Topology}
+Table~\ref{tab:partners} defines the partnership model under principle P-5.
+
+\begin{table}[t]
+\caption{Partnership Model and Contract Structure}
+\label{tab:partners}
+\centering\footnotesize
+\begin{tabular}{@{}p{1.7cm}p{2.2cm}p{3.6cm}@{}}
+\toprule
+\textbf{Partner} & \textbf{Role} & \textbf{Contract / integration}\\
+\midrule
+Shopee, TikTok Shop/Tokopedia & Demand front end; instant program enrolment & Seller-fulfilled instant SLA program; order webhooks to MagPie+; promise ADR feed. \OPEN{named program + written terms}{Commercial}{Ph.0}\\
+MOSTRANS & Mid-mile: hub$\to$node daily waves; inter-hub transfers & Per-route tariff with SLA penalties; e-POD + GPS telemetry into ShipGo+; CDOB-grade handling\\
+Grab (GrabExpress) & Primary on-demand last mile & Instant/Same-Day API; volume-tiered per-km rates; courier pre-matching; webhook tracking. \OPEN{rate card at projected tier}{Commercial}{Ph.0}\\
+GoSend (GoTo) & Secondary last mile; Tokopedia-native flow & Instant/Same-Day API; failover carrier in ShipGo rate shop\\
+Consignment stores (Exagon) & Store nodes: forward stock + pick labour & Addendum to consignment agreement: reserved stock, pick SLA, per-order fee, cycle-count duty. \OPEN{partner-side P\&L + sign-up rate}{Consignment Ops}{Ph.0}\\
+Parama & Metro linehaul, returns, cash logistics & Captive capacity; scheduled milk runs\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Dual-carrier last mile.} Grab is primary and GoSend the failover; Theorem~\ref{thm:routing}'s cost coefficients $c_{of}$ are re-quoted per order across carriers by ShipGo's rate shop, keeping per-km pricing competitive. $^{\mathrm{R5}}$ Revision~4 described this as surge resilience. It is not, on its own: both carriers draw on substantially the same Jakarta rider pool and respond to the same rain, the same rush hour and the same live-commerce spikes, so their availability is positively correlated and failover between correlated suppliers is not redundancy. Revision~5 requires the correlation to be measured and modelled jointly in experiment E5, and adds a third leg---node-level promise degradation---as the actual resilience mechanism. \OPEN{historical joint availability and price correlation of Grab and GoSend in Jakarta by hour, weather state and campaign state}{Data Lead}{Phase 1 gate}
+
+\textbf{Own fleet.} An own-fleet option is evaluated in ParaTwin as a scenario but is \emph{not} recommended for launch. Revision~4 stated a threshold of roughly 35--45 orders/day per dedicated rider-equivalent at $\ge70\%$ working-hour utilization without publishing the cost model behind it, which makes the threshold impossible to re-derive when carrier rates move---and carrier fee is the largest variable line in Table~\ref{tab:econ}. Revision~5 requires the threshold to be stated as an equation with named inputs. \OPEN{own-fleet cost model: rider cost, vehicle, insurance, utilization, versus carrier per-km rate}{Finance + Commercial}{Phase 2 gate}

@@ -1,0 +1,286 @@
+\section{Structural Results}\label{sec:structural}
+
+The formulations above are not merely descriptive; their mathematical structure dictates the ParaExpress architecture. This section states the results and their design consequences. Proofs are given inline when short and sketched otherwise. Results marked $^{\mathrm{R5}}$ are new or materially restated in Revision~5; each carries a note explaining what changed and why.
+
+\subsection{Hardness and Why a Digital Twin Is Necessary}
+
+\begin{theorem}[NP-hardness of network design]\label{thm:hardness}
+Problem \eqref{eq:p1} is NP-hard, even with uncapacitated nodes, uniform margins, and a single SKU.
+\end{theorem}
+\begin{proof}
+Take an instance of \textsc{Set Cover} with universe $U$ and family $\mathcal{S}$. Build one demand zone per element $u\in U$ with $\lambda_z=1$ and one candidate node per set $S\in\mathcal{S}$ with $t_{fz}\le\tau$ iff $u\in S$, $c^{\mathrm{fix}}_f=\varepsilon$, $\mu_f=\infty$, and $m-c^{\mathrm{var}}_{fz}=M\gg|\mathcal{S}|\varepsilon$. Any optimal solution of \eqref{eq:p1} covers all zones (each unit of covered demand is worth $M$), and among covering solutions maximizing \eqref{eq:p1} is equivalent to minimizing $\sum_fy_f$; hence an optimal (P1) solution yields a minimum set cover. \textsc{Set Cover} is NP-hard \cite{garey1979}, so (P1) is NP-hard.
+\end{proof}
+
+\begin{remark}
+Theorem~\ref{thm:hardness} is the formal design justification for the ParaTwin program: the strategic design space cannot be searched exactly at national scale, so ParaExpress pairs (i) approximation algorithms with provable guarantees for candidate generation with (ii) high-fidelity digital twin simulation for candidate evaluation, rather than trusting a single monolithic MILP solve.
+\end{remark}
+
+\subsection{Coverage Is Submodular in the Uncapacitated Case}
+
+\begin{theorem}[Near-optimal greedy expansion, uncapacitated]\label{thm:greedy}
+Let $g(Y)$ denote the optimal value of \eqref{eq:p1} restricted to open set $Y\subseteq\mathcal{F}$ with the fixed-cost term removed. \textbf{Assume $\mu_f=\infty$ for all $f$.} Then $g$ is monotone nondecreasing and submodular. Consequently, for any budget of $p$ nodes, the greedy algorithm that repeatedly opens the node with the largest marginal covered contribution attains at least $(1-1/e)\approx 63.2\%$ of the optimal covered contribution, and this is the best possible guarantee for any polynomial algorithm unless P${=}$NP.
+\end{theorem}
+\begin{proof}
+With $\mu_f=\infty$, each zone is served entirely by its best open node, so $g(Y)=\sum_z\lambda_z\max_{f\in Y\cap\mathcal{F}(z)}(m-c^{\mathrm{var}}_{fz})^+$ (with $\max_\emptyset=0$). Each summand is a maximum of nonnegative node-values over the chosen set, which is monotone and submodular; nonnegative sums preserve both properties. The $(1-1/e)$ guarantee for greedy maximization of a monotone submodular function under a cardinality constraint is the classical result of Nemhauser, Wolsey and Fisher \cite{nemhauser1978}, applied to a location problem of this form by Cornuejols, Fisher and Nemhauser \cite{cornuejols1977}; the matching inapproximability bound is Feige's \cite{feige1998}.
+\end{proof}
+
+\subsubsection*{$^{\mathrm{R5}}$ Scope of Theorem~\ref{thm:greedy} under capacity}\label{sec:capacitated}
+
+Revision~4 stated Theorem~\ref{thm:greedy} for the uncapacitated case and then used it, through Corollary~\ref{cor:stores}, to order a rollout in a network where constraint~\eqref{eq:p1c} binds and Table~\ref{tab:formats} caps node throughput between 20 and 150 orders per hour for the two measured formats, with the store-node cap itself unmeasured (O-14). That is a use outside the proven scope, and the scope matters: under capacity the guarantee does not transfer.
+
+Let $g^{\mathrm{cap}}(Y)$ be the optimal value of \eqref{eq:p1}--\eqref{eq:p1c} over open set $Y$ with fixed costs removed. Three statements hold, and Revision~4 did not distinguish them.
+
+\emph{(a) Monotonicity survives.} Opening a node relaxes \eqref{eq:p1c} and adds columns, so $g^{\mathrm{cap}}$ is nondecreasing. Corollary~\ref{cor:stores}, which uses only monotonicity and $c^{\mathrm{fix}}\approx0$, is therefore unaffected by capacity.
+
+\emph{(b) Submodularity fails for whole-order assignment.} The proof of Theorem~\ref{thm:greedy} works because each zone independently selects its best open node; that argument collapses the moment \eqref{eq:p1c} binds. It does more than collapse. The following instance, found by exhaustive search over small cases, violates diminishing returns outright. Three candidate nodes $\{0,1,2\}$ and three zones with demand rates $\lambda=(0.6,\,1.0,\,0.4)$ and node throughputs $\mu=(0.6,\,1.0,\,0.4)$; unit contributions $(m-c^{\mathrm{var}}_{fz})$ given by rows $f=0,1,2$ of
+\[
+\begin{bmatrix}1.0&0.6&0.6\\ 1.0&0.6&1.0\\ 0.6&1.0&1.0\end{bmatrix}.
+\]
+With whole orders (each zone served by exactly one node), $g^{\mathrm{cap}}(\{1\})=1.0$, $g^{\mathrm{cap}}(\{1,2\})=1.0$, $g^{\mathrm{cap}}(\{0,1\})=1.2$ and $g^{\mathrm{cap}}(\{0,1,2\})=1.6$. Hence the marginal value of node~2 is $0$ given $\{1\}$ but $0.4$ given the superset $\{0,1\}$:
+\[
+g^{\mathrm{cap}}(\{1,2\})-g^{\mathrm{cap}}(\{1\})=0 \;<\; 0.4 = g^{\mathrm{cap}}(\{0,1,2\})-g^{\mathrm{cap}}(\{0,1\}),
+\]
+which is increasing, not diminishing, returns. The mechanism is capacity complementarity: opening node~0 relieves node~1 of zone~0, freeing the capacity that makes node~2 worth opening. Greedy therefore no longer \emph{inherits} the $(1-1/e)$ guarantee via Theorem~\ref{thm:greedy}, and Revision~5 claims no guarantee in its place. The failure of submodularity does not by itself prove that no bound holds for greedy on this problem; it removes the only argument Revision~4 offered for one. The mechanism is structural rather than a pathology of the numbers.
+
+\emph{(c) The fractional relaxation appears to behave better.} When zone demand may be split across nodes ($x_{fz}\in[0,1]$, as written in \eqref{eq:p1}), a randomized search over 700 generated and adversarially structured instances (3 and 4 nodes, 3 and 4 zones, tight capacities, clustered contributions), each checked exhaustively over all subset pairs, found no violation of diminishing returns. That is consistent with submodularity of the splittable value function but is not a proof. The distinction matters operationally, because (P1) is written with splittable zone assignment while (P3) assigns whole orders: the strategic model is the fractional case, the running system is the integral one. \OPEN{proof or counterexample for submodularity of the \emph{splittable} capacitated coverage value $g^{\mathrm{cap}}$}{Head of Platform R\&D}{Phase 1 exit}
+
+\emph{What replaces the guarantee.} A $(1-1/e)$ approximation for the capacitated structure is available by a different route: for a \emph{fixed} open-node set with per-node packing constraints, \eqref{eq:p1} is a maximum separable assignment problem, for which Fleischer, Goemans, Mirrokni and Sviridenko give a tight $(1-1/e)$ LP-rounding algorithm \cite{fleischer2011}. The cardinality bound on how many nodes may be opened is an additional constraint that SAP does not carry; that structure is covered by the maximum-coverage-with-group-budgets results of Chekuri and Kumar \cite{chekuri2004}, with pipage rounding \cite{ageev2004} as the rounding technique.
+
+\emph{Design consequence.} ParaExpress continues to use greedy marginal-contribution ordering to \emph{generate} rollout candidates: it is fast, and Corollary~\ref{cor:stores} holds under capacity. It no longer claims the $(1-1/e)$ bound for the deployed network. The rollout order that reaches a decision is the one certified in ParaTwin against the capacitated objective (Section~\ref{sec:twin}), with \cite{chekuri2004,fleischer2011} as the guaranteed cross-check in the optimizer bank. Because the counterexample is driven by capacity complementarity, the practical rule is that a node rejected by greedy must be re-evaluated after any later activation that changes a neighbouring catchment---which is precisely what a recomputed-marginal rollout does, and precisely what a fixed one-pass ranking would not.
+
+\begin{corollary}[Consignment stores dominate as first waves]\label{cor:stores}
+Because $g^{\mathrm{cap}}$ is monotone, activating an Exagon consignment store as a fulfillment node never reduces covered contribution; and since $c^{\mathrm{fix}}_f\approx0$ for such nodes, any store whose marginal covered contribution is positive improves profit. Monotonicity, together with the capacity complementarity of Section~\ref{sec:structural}-\ref{sec:capacitated}, implies the correct rollout order is by marginal \emph{contribution}, recomputed after each activation---not by store size or standalone retail sales, and not fixed by a single ranking pass.
+\end{corollary}
+
+\begin{remark}[$^{\mathrm{R5}}$ The contribution floor]
+Revision~4 wrote this corollary in terms of marginal \emph{coverage} rather than marginal \emph{contribution}. The distinction is not cosmetic: objective \eqref{eq:p1} nets $c^{\mathrm{var}}_{fz}$ against $m$, so covering demand whose basket value does not clear the courier fee plus pick cost plus channel commission destroys value while increasing coverage. Greedy expansion must therefore be filtered by a minimum-contribution threshold, not merely by positive coverage. The threshold is a function of the basket-value distribution, which Revision~4 did not state. \OPEN{basket-value distribution by catchment, and the resulting minimum-contribution threshold for node activation}{Data Lead}{Phase 1 exit}
+\end{remark}
+
+Corollary~\ref{cor:stores} is the mathematical core of the ParaExpress asset-light thesis: the consignment estate already integrated in Exagon is a near-zero-capex coverage endowment that competitors without a store network cannot replicate.
+
+\subsection{How Many Nodes: Risk Pooling vs.\ Proximity}
+
+Opening more nodes shortens the last mile but fragments inventory. The trade-off admits a clean characterization under a continuous approximation \cite{eppen1979,daganzo1984}.
+
+\begin{assumption}\label{as:uniform}
+A metro of area $A$ with instant demand density $\rho_{\mathrm{d}}$ (orders/hr/km$^2$), $\Lambda=\rho_{\mathrm{d}}A$, is served by $n$ identical nodes with balanced catchments; couriers travel at effective mean speed $v$; per-node fixed cost rate is $F$; holding cost rate per unit of safety stock is $h$; aggregate demand volatility over the replenishment horizon is $\sigma$ (units).
+\end{assumption}
+
+\begin{remark}[$^{\mathrm{R5}}$ Where Assumption~\ref{as:uniform} does not hold]
+The deployed network is heterogeneous by construction: Table~\ref{tab:formats} specifies three node formats, two of which carry measured throughput spanning a factor of at least seven, and Phase~1 opens a mixed population. Assumption~\ref{as:uniform} therefore governs a \emph{layer}, not the network. Section~\ref{sec:arch}-\ref{sec:sizing} states the two-stage procedure that applies it correctly, and the packing-efficiency parameter $\eta$ that absorbs non-uniform geography is now required to carry a measured value rather than a symbol. \OPEN{measured packing/overlap efficiency $\eta$ per pilot metro, from the road network and the residential-area mask}{Data Lead}{Phase 1 gate}
+\end{remark}
+
+\begin{lemma}[Continuous approximation of the last mile]\label{lem:lastmile}
+Under Assumption~\ref{as:uniform}, the expected courier travel distance per order is $d(n)=k\sqrt{A/n}$ for a constant $k$ depending on the metric and catchment shape ($k\approx0.38$ for Euclidean travel to a centrally located depot in a compact catchment; higher for grid metrics) \cite{daganzo1984}.
+\end{lemma}
+
+\begin{proposition}[$^{\mathrm{R5}}$ Pooling penalty under correlated zone demand]\label{prop:pooling}
+Suppose aggregate demand over the replenishment horizon has standard deviation $\sigma$ and is split across $n$ zones with equal variances and pairwise correlation $\rho\in[0,1]$. Then the total safety stock required for a common item fill rate $\beta^\star$ is
+\begin{equation}\label{eq:pooling}
+\mathrm{SS}(n,\rho)=z_{\beta^\star}\,\sigma\,\Psi(n,\rho),\qquad
+\Psi(n,\rho)=\sqrt{\frac{n}{1+(n-1)\rho}} .
+\end{equation}
+$\Psi(n,0)=\sqrt{n}$ recovers the independent case; $\Psi(n,1)=1$ (perfectly correlated demand cannot be pooled, so decentralization costs nothing); and $\Psi(n,\rho)\uparrow\rho^{-1/2}$ as $n\to\infty$ for $\rho>0$, so the penalty is \emph{bounded} rather than unbounded.
+\end{proposition}
+\begin{proof}
+Let each zone have variance $s^2$ and pairwise correlation $\rho$. Variance of the aggregate is $ns^2+n(n-1)\rho s^2=\sigma^2$, so $s=\sigma/\sqrt{n[1+(n-1)\rho]}$. Each of the $n$ zones holds $z_{\beta^\star}s$, giving $n z_{\beta^\star}s = z_{\beta^\star}\sigma\sqrt{n/(1+(n-1)\rho)}$.
+\end{proof}
+
+\begin{remark}[$^{\mathrm{R5}}$ What changed and why]
+Revision~4 stated only the $\rho=0$ case and cited Eppen \cite{eppen1979} for it. Eppen's paper itself treats correlated demand; Revision~4 used the independent special case while the surrounding design assumed the opposite. Two mechanisms in this report make $\rho>0$ the operative case: live-commerce demand shocks are modeled as Hawkes bursts (Section~\ref{sec:twin}), which are spatially correlated across a metro during a single live event; and the distributed order manager performs cross-node substitution and rebalancing (Section~\ref{sec:solution}), which partially re-pools inventory that Proposition~\ref{prop:pooling} treats as separate. Both push the effective $\rho$ above zero, and both therefore make Revision~4's $\sqrt{n}$ an overstatement of the decentralization penalty. Because that penalty enters the cost function as the term that \emph{discourages} opening nodes, overstating it biases the optimal node count \emph{downward}---the direction that silently under-builds the network. \OPEN{fitted equicorrelation $\rho$ across zone demand within a metro, by hour-of-day and campaign state}{Data Lead}{Phase 1 gate}
+\end{remark}
+
+\begin{theorem}[$^{\mathrm{R5}}$ Optimal node count under correlated demand]\label{thm:nodecount}
+Let the system cost rate be
+\begin{equation}\label{eq:cost}
+C(n)=Fn+a\,\Psi(n,\rho)+b\,n^{-1/2},
+\end{equation}
+with $a=hz_{\beta^\star}\sigma$ and $b=\Lambda c_dk\sqrt{A}$, where $c_d$ is courier cost per km. Then:
+\begin{enumerate}
+\item[(i)] For $\rho=0$, \eqref{eq:cost} reduces to $C(n)=Fn+a\sqrt{n}+bn^{-1/2}$, which is strictly unimodal on $(0,\infty)$ with a unique minimizer $n^\star$; $x=\sqrt{n^\star}$ is the unique positive root of $2Fx^3+ax^2-b=0$.
+\item[(ii)] For $\rho\in(0,1)$ the stationarity condition is $\psi(n)=0$ with
+\begin{equation}\label{eq:psi}
+\psi(n)=Fn^{3/2}+\frac{a(1-\rho)\,n}{2\,[1+(n-1)\rho]^{3/2}}-\frac{b}{2},
+\end{equation}
+which reduces to $Fn^{3/2}+\tfrac{a}{2}n-\tfrac{b}{2}$ at $\rho=0$. Since $\psi(0^+)=-b/2<0$ and $\psi(n)\to\infty$, a minimizer exists. Uniqueness for $\rho\in(0,1)$ is \emph{not} proved here and is verified numerically over the design-relevant range (Remark~\ref{rem:numval}); ParaTwin evaluates $C$ on a grid rather than relying on a root find.
+\item[(iii)] $n^\star$ is nondecreasing in $\rho$: correlation reduces the value of pooling, so more nodes are optimal.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+(i) $C'(n)=F+\tfrac{a}{2}n^{-1/2}-\tfrac{b}{2}n^{-3/2}$; multiplying by $n^{3/2}>0$ gives $\psi_0(n)=Fn^{3/2}+\tfrac a2 n-\tfrac b2$, which is strictly increasing with $\psi_0(0^+)<0$ and $\psi_0(\infty)>0$, establishing a unique sign change and hence unimodality. Substituting $x=\sqrt n$ and doubling gives the cubic. (ii) Differentiating \eqref{eq:pooling}, $\partial\Psi/\partial n=(1-\rho)\bigl/\bigl(2\sqrt n\,[1+(n-1)\rho]^{3/2}\bigr)$; substituting into $C'(n)=0$ and multiplying by $n^{3/2}$ yields \eqref{eq:psi}. (iii) What matters is the \emph{marginal} inventory cost, $\partial\Psi/\partial n$, not the level of $\Psi$. Differentiating the expression above with respect to $\rho$ gives $\partial_\rho(\partial_n\Psi)=-\tfrac{1}{2\sqrt n}\,[1+(n-1)\rho]^{-5/2}\bigl\{[1+(n-1)\rho]+\tfrac32(n-1)(1-\rho)\bigr\}<0$ for $n>1$, $\rho\in[0,1)$. Raising $\rho$ therefore strictly lowers the marginal inventory cost of an additional node while leaving $F$ and $b$ unchanged, so $\psi$ falls pointwise and its zero moves right.
+\end{proof}
+
+\begin{remark}[Numerical validation]\label{rem:numval}
+All closed forms in this section are cross-checked in ParaTwin against brute-force evaluation. For the illustrative parameters of Fig.~\ref{fig:cost}, $(F,a,b)=(1.2,6,120)$: at $\rho=0$ the cubic $2.4x^3+6x^2-120=0$ has its unique positive root at $x\approx3.012$, hence $n^\star\approx9.07$ and $C(n^\star)\approx68.8$, matching the plotted minimum. The $F\to0$ form gives $n^\star=b/a=20$, correctly larger, since removing fixed cost always weakly increases the optimal node count. Under Proposition~\ref{prop:pooling}, the same parameters give $n^\star\approx10.9$ at $\rho=0.05$, $11.9$ at $\rho=0.1$, $12.8$ at $\rho=0.2$, $13.2$ at $\rho=0.3$ and $13.6$ at $\rho=0.9$; a numerical sweep over $n\in(0.5,120]$ confirms exactly one interior turning point at every tested $\rho$, consistent with unimodality. \textbf{These parameters are illustrative and are not Jakarta values}; production curves are calibrated per metro and $n^\star$ is reported as an interval over the sensitivity ranges of Appendix~B.
+\end{remark}
+
+\subsection{$^{\mathrm{R5}}$ The SLA Feasibility Floor}
+
+\begin{proposition}[$^{\mathrm{R5}}$ Distribution-free service radius and node floor]\label{prop:radius}
+Fix promise $(\tau,\alpha)$ and write $\varepsilon=1-\alpha$ for the risk budget. Let $t^{q}_{\mathrm{node}}$ denote the $q$-quantile of in-node time and let $v_{q}$ denote the $q$-quantile effective speed over the catchment, i.e.\ the speed such that travel over distance $R$ exceeds $R/v_q$ with probability at most $1-q$. For any split $\varepsilon_1+\varepsilon_2=\varepsilon$ with $\varepsilon_1,\varepsilon_2>0$, the radius
+\begin{equation}\label{eq:radius}
+R(\varepsilon_1,\varepsilon_2)=v_{1-\varepsilon_2}\cdot\bigl(\tau-T_{\mathrm{route}}-t^{1-\varepsilon_1}_{\mathrm{node}}\bigr)^{+}
+\end{equation}
+satisfies the PX1 constraint \eqref{eq:px1}, with no assumption on the dependence between $T_{\mathrm{node}}$ and $T_{\mathrm{travel}}$ and no distributional assumption on either. The attainable radius is $R^\star=\max_{\varepsilon_1+\varepsilon_2=\varepsilon}R(\varepsilon_1,\varepsilon_2)$, and any design covering area $A$ requires
+\begin{equation}\label{eq:nmin}
+n\ \ge\ n_{\min}=\left\lceil \frac{A}{\eta\,\pi (R^\star)^2}\right\rceil,
+\end{equation}
+where $\eta\le1$ is the measured packing/overlap efficiency of catchments on the road network.
+\end{proposition}
+\begin{proof}
+By Boole's inequality \cite{feller1968}, $\Pr[T_{\mathrm{node}}+T_{\mathrm{travel}}>\tau-T_{\mathrm{route}}]\le\Pr[T_{\mathrm{node}}>t^{1-\varepsilon_1}_{\mathrm{node}}]+\Pr[T_{\mathrm{travel}}>\tau-T_{\mathrm{route}}-t^{1-\varepsilon_1}_{\mathrm{node}}]\le\varepsilon_1+\varepsilon_2=\varepsilon$, where the second term uses the definition of $v_{1-\varepsilon_2}$ at distance $R$. Hence \eqref{eq:px1} holds. The floor \eqref{eq:nmin} follows from covering $A$ with $n$ discs of radius $R^\star$ at efficiency $\eta$.
+\end{proof}
+
+\begin{remark}[$^{\mathrm{R5}}$ What was wrong, and by how much]
+Revision~4 set $R=v(\tau-T_{\mathrm{route}}-t^{\alpha}_{\mathrm{node}})^{+}$ with $v$ an effective \emph{mean} speed. That formula is the $\varepsilon_1=\varepsilon,\ \varepsilon_2=0$ corner of \eqref{eq:radius}, which is admissible only if travel time is bounded above with probability one---i.e.\ if travel is deterministic. It is not: Section~\ref{sec:twin} fits travel-time distributions by quantile regression from rider GPS. The error is the implicit use of the identity $q_\alpha(X+Y)=q_\alpha(X)+\mathbb{E}[Y]$, which fails for any $Y$ with positive variance and $\alpha>1/2$. Quantiles (equivalently, value-at-risk) are not additive and are not subadditive in general \cite{artzner1999,embrechts2002}; this is the same failure mode that motivated coherent risk measures. Revision~4 therefore \emph{overstated} the feasible radius, and since $n_{\min}$ scales as $R^{-2}$, understated the node floor quadratically.
+
+On illustrative parameters---$\tau=60$, $T_{\mathrm{route}}=4$\,min, $\alpha=0.95$, in-node time log-normal with median 9\,min and log-scale $0.35$, effective speed log-normally dispersed about a 20\,km/h \emph{median} with log-scale $0.30$, $A=662$\,km$^2$ (DKI Jakarta), $\eta=0.65$---Revision~4's formula gives $R=13.3$\,km while \eqref{eq:radius} gives $R^\star=7.1$\,km at the optimal split $(\varepsilon_1,\varepsilon_2)=(0.017,0.033)$. Since $n_{\min}\propto R^{-2}$, the floor rises by $3.5\times$, from 2 nodes to 7. \emph{On these particular parameters the floor still sits below $n^\star\approx9$--$13$, so $\max(n_{\min},n^\star)$ is unchanged and the radius correction alters no decision here.} It binds where the metro is large, the promise tight, or in-node time slow relative to $\tau$, and the direction of the Revision~4 error is always the same: toward a network too small to keep the promise. \textbf{These inputs are illustrative}; the production values require the fitted distributions. \OPEN{fitted in-node time and effective-speed quantile functions per pilot catchment, from Heron/Heron Lite event logs and rider GPS}{Data Lead}{Phase 1 gate}
+\end{remark}
+
+\begin{remark}[The operative refinement]
+Boole's inequality is distribution-free and therefore conservative. When $T_{\mathrm{node}}$ and $T_{\mathrm{travel}}$ can be treated as independent, the normal approximation $q_\alpha(T_{\mathrm{node}}+T_{\mathrm{travel}})\approx\mu_{\mathrm{node}}+\mu_{\mathrm{travel}}+z_\alpha\sqrt{\sigma^2_{\mathrm{node}}+\sigma^2_{\mathrm{travel}}}$ is tighter and yields a larger admissible radius. ParaExpress uses the Boole bound \eqref{eq:radius} as the guaranteed floor for network sizing decisions and the fitted joint quantile from ParaTwin as the operating value, and reports both. The gap between them is a named KPI (Table~\ref{tab:kpi}), because a large gap means the fitted dependence structure is carrying design weight.
+\end{remark}
+
+\begin{remark}[Design consequence preserved from Revision~4]
+Proposition~\ref{prop:radius} continues to quantify why ParaExpress invests in pick--pack speed and courier pre-matching (Section~\ref{sec:solution}): a 3-minute reduction of in-node time at $v=20$\,km/h widens $R$ by 1\,km, which at typical Jakarta densities removes whole nodes from the requirement, since $n_{\min}\propto R^{-2}$. The correction does not weaken this lever; it strengthens it, because the base radius is smaller than Revision~4 believed.
+\end{remark}
+
+\subsection{$^{\mathrm{R5}}$ Order-Level Availability}
+
+\begin{proposition}[$^{\mathrm{R5}}$ Item fill rate implied by an order fill target]\label{prop:orderfill}
+Let a basket contain $j$ distinct SKUs with probability $p_j$ and generating function $G_B(x)=\sum_{j\ge1}p_jx^{j}$. If stockout events across SKUs at a node are independent, the order fill rate at common item fill rate $\beta$ is
+\begin{equation}\label{eq:orderfill}
+\alpha_B(\beta)=\sum_{j\ge1}p_j\beta^{j}=G_B(\beta).
+\end{equation}
+$G_B$ is continuous and strictly increasing on $(0,1]$ with $G_B(1)=1$, so for any target $\alpha_B^{\mathrm{tgt}}\in(0,1)$ there is a unique required item fill rate
+\begin{equation}\label{eq:betastar}
+\beta^\star=G_B^{-1}\bigl(\alpha_B^{\mathrm{tgt}}\bigr),
+\end{equation}
+and \eqref{eq:basestock} must be sized with $z_{\beta^\star}=\Phi^{-1}(\beta^\star)$, not with $\Phi^{-1}(\alpha_B^{\mathrm{tgt}})$. If stockout events are positively associated---as they are when SKUs at a node share a replenishment wave and a lead time---then $\Pr[\text{all available}]\ge\prod\Pr[\text{available}]$ by the FKG/association inequality \cite{esary1967}, so \eqref{eq:orderfill} is a lower bound and $\beta^\star$ from \eqref{eq:betastar} is conservative.
+\end{proposition}
+
+\begin{remark}[$^{\mathrm{R5}}$ Why this proposition exists]
+Revision~4 sized \eqref{eq:basestock} from an item fill rate $\beta$ and promised PX1 at $\alpha=0.95$ measured on the \emph{order}. Definition~\ref{def:avail} separates the two quantities; Revision~4 did not, and no inversion between them appeared anywhere in the document. The order fill rate in multi-item base-stock systems is a well-studied quantity with an established literature: Song gives exact results and bounds for the multi-item order fill rate \cite{song1998}, and Hausman, Lee and Zhang treat joint demand fulfillment probability under independent order-up-to policies \cite{hausman1998}. Neither was cited in Revision~4.
+
+\emph{Magnitude.} Under three illustrative basket-size distributions, \eqref{eq:betastar} at $\alpha_B^{\mathrm{tgt}}=0.95$ requires $\beta^\star=0.972$ (mean 1.80 distinct SKUs), $0.979$ (mean 2.45) and $0.983$ (mean 3.05); the corresponding $z_{\beta^\star}$ are $1.91$, $2.04$ and $2.13$ against the $1.645$ that reading $\Phi^{-1}(0.95)$ directly would give---a 16\% to 29\% increase in the safety-stock term of \eqref{eq:basestock}. Conversely, a 98\% item fill target delivers order availability of $0.964$, $0.952$ and $0.940$ respectively, so at mean basket sizes above roughly 2.5 distinct SKUs it misses the PX1 promise before any queueing, picking or travel variability is counted. \textbf{The basket-size distribution is the input that decides which of these regimes ParaExpress is in, and it is not yet measured.} \OPEN{distinct-SKU basket-size distribution $p_j$ from MagPie B2C history, by channel and by campaign state}{Data Lead}{Phase 0 exit}
+
+\emph{Design consequence.} Order fill rate joins the KPI vector (Table~\ref{tab:kpi}) as a first-class metric. Item fill rate remains an operating control, but it is no longer a promise metric. This also changes the assortment problem: Theorem~\ref{thm:assortment}(iii) already optimizes basket completeness for revenue; \eqref{eq:betastar} makes basket completeness an \emph{availability} constraint as well.
+\end{remark}
+
+\subsection{Assortment: Exact Greedy Under Uniform Slots}
+
+\begin{theorem}[Forward assortment]\label{thm:assortment}
+\emph{(i)} If all SKUs consume equal slots ($w_k\equiv1$), \eqref{eq:p2} is a maximization over a uniform matroid and the greedy algorithm---stock the $V_f$ SKUs with the highest captured revenue rate $r_{fk}$---is exactly optimal.
+\emph{(ii)} For general $w_k$, \eqref{eq:p2} is a 0--1 knapsack: NP-hard but admitting an FPTAS, and density-greedy (rank by $r_{fk}/w_k$, take the better of the greedy prefix and the single best item) is a $\tfrac12$-approximation \cite{kellerer2004}.
+\emph{(iii)} Under the basket-completeness objective $R_f(S)$ optimized over brand blocks (bundles and regimen sets never split across the block boundary), the block-level problem is monotone submodular maximization under a knapsack constraint; Sviridenko's algorithm gives $(1-1/e)$ \cite{sviridenko2004}.
+\emph{(iv)} $^{\mathrm{R5}}$ Let $\epsilon_{\mathrm{rev}}$ denote the \emph{share of basket revenue} carried by baskets that cross brand blocks. Then the guarantee on full-basket revenue degrades by at most the factor $(1-\epsilon_{\mathrm{rev}})$.
+\end{theorem}
+\begin{proof}[Proof sketch]
+(i) Uniform-matroid greedy optimality is elementary (exchange argument). (ii) Standard knapsack results \cite{kellerer2004}. (iii) Block-restricted $R_f$ is a nonnegative weighted coverage function over disjoint blocks, hence monotone submodular; apply \cite{sviridenko2004} under the slot-budget knapsack. (iv) Cross-block baskets contribute at most $\epsilon_{\mathrm{rev}}$ of total basket revenue by definition, and the block-restricted solution captures none of it in the worst case; the remaining $(1-\epsilon_{\mathrm{rev}})$ of revenue is covered by (iii).
+\end{proof}
+
+\begin{remark}[$^{\mathrm{R5}}$ What changed in part (iv)]
+Revision~4 stated the degradation factor as $(1-\epsilon)$ where $\epsilon$ bounded the \emph{probability} that a basket crosses brand blocks, and asserted that single-brand baskets are ``empirically high in beauty'' without a citation or a MagPie figure. Bounding the count of cross-block baskets does not bound their revenue. A cross-brand basket---a base from one brand with a lip product from another---is plausibly larger than the average basket, in which case a small share of baskets carries a materially larger share of revenue and the stated guarantee is optimistic. Part (iv) restates the bound on the quantity that the objective actually measures. Both $\epsilon$ (count) and $\epsilon_{\mathrm{rev}}$ (revenue) are now required inputs. \OPEN{single-brand basket share by count and by revenue, from MagPie B2C history}{Data Lead}{Phase 1 gate}
+\end{remark}
+
+Theorem~\ref{thm:assortment} justifies the operating rule of Section~\ref{sec:mfc}: a 400--600-SKU forward assortment per node, selected by demand rate per catchment (not by a uniform planogram), refreshed weekly by ParaTwin forecasts, and constrained by the order-fill requirement of Proposition~\ref{prop:orderfill}.
+
+\subsection{Real-Time Routing Is Exactly Solvable}
+
+\begin{theorem}[Integral optimality in polynomial time]\label{thm:routing}
+The LP relaxation of \eqref{eq:p3} always has an integral optimal solution, and \eqref{eq:p3} is solvable at a min-cost flow $\to$ integral assignment in $O(|O|^2|\mathcal{F}|)$ time up to logarithmic factors; hence exact optimal order routing is feasible at sub-second latency at ParagonCorp scale.
+\end{theorem}
+\begin{proof}
+\eqref{eq:p3} is a transportation problem on the bipartite graph $O\times\mathcal{F}$ with unit supplies and integer capacities $\kappa_f$; its constraint matrix is totally unimodular, so every basic optimal solution of the LP relaxation is integral. Successive shortest paths with $|O|$ unit augmentations, each a Dijkstra pass with Johnson potentials over the $O(|O||\mathcal{F}|)$-arc bipartite graph, gives $O(|O|^2|\mathcal{F}|)$ up to log factors \cite{ahuja1993}. At ParaExpress scale ($|O|$ per wave $\le10^3$, $|\mathcal{F}|\le10^2$ per metro) the bound is of order $10^8$ elementary operations, i.e.\ sub-100\,ms, which is the budget Table~\ref{tab:nfr} sets for the Order Routing Engine.
+\end{proof}
+
+\subsubsection*{$^{\mathrm{R5}}$ Commitment policy}\label{sec:commit}
+
+Theorem~\ref{thm:routing} establishes optimality \emph{for one wave}. Revision~4 then stated that (P3) is re-solved ``every few seconds (or on each order arrival)'' without specifying whether a re-solve may reassign an order whose pick has begun. The two readings have different guarantees and Revision~5 fixes the policy:
+
+\begin{quote}
+\textbf{Commitment rule.} An order is \emph{committed} at the instant the Virtual Inventory Service confirms its reservation and the node task is pushed. A committed order is never reassigned by a subsequent wave solve; it is released only by cancellation, by node outage, or by reservation TTL expiry, each of which returns it to the uncommitted pool with its promise clock unchanged. Each wave solve is therefore exactly optimal over the uncommitted orders and residual capacity of that wave.
+\end{quote}
+
+Under this rule the deployed router is an online algorithm executing a sequence of exactly-solved subproblems, not an offline optimizer. The relevant performance question is the gap between the sequence of wave optima and the clairvoyant optimum, which is not bounded analytically here and is measured instead: ParaTwin's shadow-replay mode computes the daily clairvoyant assignment on completed traces and reports the realized regret as a KPI (Table~\ref{tab:kpi}). Empirically, micro-batching over waves of $\Delta\in[5,30]$\,s retains optimality within the wave and closes most of the gap to clairvoyant routing in same-day settings \cite{klapp2018,ulmer2021}, while consuming at most $\Delta$ of the $\tau$ budget.
+
+\begin{remark}[$^{\mathrm{R5}}$ The wave length is now a two-sided decision]
+Revision~4 treated $\Delta$ as a routing parameter whose only cost was the $\Delta$ seconds it consumed from the promise budget. Proposition~\ref{prop:staffing} shows $\Delta$ also inflates required staffing. The optimizer must therefore choose $\Delta$ against both effects; it is registered as a tuned parameter in the ParaTwin optimizer bank rather than a constant.
+\end{remark}
+
+\subsection{Staffing the Nodes}
+
+\begin{proposition}[$^{\mathrm{R5}}$ Square-root staffing under wave-batched release]\label{prop:staffing}
+Let work be released to node $f$'s picker pool at wave epochs spaced $\Delta$ apart, with orders accumulating Poisson at rate $\lambda_f$ between epochs, so each release is a batch $X\sim\mathrm{Poisson}(a_f)$ with $a_f=\lambda_f\Delta$. The batch-size peakedness is
+\begin{equation}\label{eq:dispersion}
+I_f=\frac{\mathbb{E}[X^2]}{\mathbb{E}[X]}=1+a_f=1+\lambda_f\Delta .
+\end{equation}
+Writing $\varrho_f=\lambda_f/\nu$ for the offered load and taking exponential pick times ($c_s^2=1$), the staffing that attains target delay probability $\Pr[T_{\mathrm{queue}}>0]\le\delta$ in the quality-and-efficiency-driven regime satisfies
+\begin{equation}\label{eq:staffing}
+c_f \;\lesssim\; \varrho_f+\beta_\delta\sqrt{\tfrac{I_f+1}{2}}\;\sqrt{\varrho_f}
+\;=\;\varrho_f+\beta_\delta\sqrt{1+\tfrac{\lambda_f\Delta}{2}}\;\sqrt{\varrho_f},
+\end{equation}
+where $\beta_\delta$ solves the Halfin--Whitt delay equation $[1+\beta\Phi(\beta)/\phi(\beta)]^{-1}=\delta$ \cite{halfin1981}. At $\Delta\to0$, $I_f\to1$ and \eqref{eq:staffing} recovers the M/M/$c$ form of Revision~4.
+\end{proposition}
+\begin{proof}[Proof sketch]
+Batching leaves the mean rate unchanged and raises the variability of the stream offered to the servers; for $X\sim\mathrm{Poisson}(a)$ the peakedness is $(a+a^2)/a=1+a$. The many-server diffusion approximation for a queue with non-Poisson arrivals scales the safety term by $\sqrt{(c_a^2+c_s^2)/2}$ \cite{whitt1993,whitt2004}, and with exponential service this is $\sqrt{(I_f+1)/2}$; standard bulk-queue treatments give the same peakedness correction \cite{chaudhry1983}. The relation is written as an upper bound because the wave \emph{epochs} are deterministic rather than Poisson, which makes the release stream less variable than the batch-size peakedness alone implies; \eqref{eq:staffing} is therefore conservative, and ParaTwin fits the operating value directly.
+\end{proof}
+
+\begin{remark}[$^{\mathrm{R5}}$ Magnitude, and an honest downgrade]
+Revision~4 applied Halfin--Whitt to an M/M/$c$ model while specifying wave-batched release, an inconsistency between two of its own results. The correction is real but, at current ParaExpress scale, modest: $\lambda_f\Delta$ is small because waves are short relative to node arrival rates. At $\Delta=30$\,s the inflation factor $\sqrt{1+\lambda_f\Delta/2}$ is $1.02$ for a store node at 10 orders/h, $1.12$ for a dark MFC at 60 orders/h, and $1.27$ for a flagship at 150 orders/h; at $\Delta=5$\,s it is $1.00$, $1.02$ and $1.05$. In headcount, at offered load $\varrho=20$ and $\beta_\delta=1$ the flagship case at $\Delta=30$\,s adds about $1.2$ pickers over the Revision~4 figure. The effect matters at flagship scale and at long waves, and is close to negligible at store nodes. It is stated here because it becomes material as $\Lambda$ grows and because it changes $\Delta$ from a one-sided to a two-sided decision.
+
+Staffing still grows sublinearly in volume---doubling demand at a node requires materially less than double the pickers---so the economy of scale that favors fewer, busier nodes at fixed SLA survives, and continues to counterbalance Proposition~\ref{prop:radius}.
+\end{remark}
+
+\subsection{Virtual Inventory Correctness}
+
+\begin{proposition}[$^{\mathrm{R5}}$ Safe ATP under concurrent channels, cross-partition transfer, and offline stores]\label{prop:atp}
+Let physical on-hand at node $f$ for SKU $k$ be $I_{fk}$, open reservations $Q_{fk}$, and let every channel (Shopee, TikTok Shop, brand.com, offline POS at store nodes) reserve through a single linearizable ledger \cite{herlihy1990} with atomic compare-and-decrement on
+\begin{equation}\label{eq:atp}
+\mathrm{ATP}_{fk}=I_{fk}-Q_{fk}-s_{fk},
+\end{equation}
+with protection buffer $s_{fk}\ge0$. Define the \emph{effective posting latency}
+\begin{equation}\label{eq:elleff}
+\ell^{\mathrm{eff}}_{f}(t)=\max\bigl\{\ \ell^{\mathrm{obs}}_f,\ \ t-h_f\ \bigr\},
+\end{equation}
+where $\ell^{\mathrm{obs}}_f$ is the observed steady-state posting latency and $h_f$ is the timestamp of the last liveness heartbeat received from node $f$. Then no order is accepted without physical stock provided all three hold:
+\begin{enumerate}
+\item[(C1)] \emph{Buffer.} $s_{fk}\ge \hat d_{fk}\bigl(\ell^{\mathrm{eff}}_f(t)\bigr)$, an upper bound on unposted POS demand over a window of length $\ell^{\mathrm{eff}}_f$. Oversell probability is bounded by $\Pr[d_{fk}(\ell^{\mathrm{eff}}_f)>s_{fk}]$, a computable Poisson tail.
+\item[(C2)] \emph{Allocation suspension.} If $\ell^{\mathrm{eff}}_f(t)$ exceeds the window for which (C1) can be satisfied within the shelf quantity, node $f$ is removed from $\mathcal{F}(o)$ for all new orders until a heartbeat and a posting flush are received.
+\item[(C3)] \emph{Cross-partition transfer.} Any stock movement between nodes $f$ and $f'$ (rebalancing, substitution sourcing, split shipment) executes as a two-phase commit over the two ledger partitions \cite{gray1993}, or as a compensating saga \cite{garciamolina1987} in which the source decrement commits before the destination increment and reservations against the source are frozen for the duration. No transfer may proceed while an uncommitted reservation exists on the affected $(f,k)$.
+\end{enumerate}
+\end{proposition}
+
+\begin{remark}[$^{\mathrm{R5}}$ What Revision~4 did not cover]
+Revision~4's Proposition~4 established (C1) alone, with $\ell$ a fixed 5-minute contractual latency, and asserted that offline replay is conflict-free ``because each node's ledger partition has a single writer.'' Single-writer ordering makes replay \emph{deterministic}; it does not make the ATP that the ledger published while the node was dark \emph{correct}. Two specified behaviours fall outside the original proposition:
+
+\emph{The offline window.} Section~\ref{sec:solution} allows edge clients store-and-forward queues of at least 4 hours. A POS sale at an offline store is a decrement the ledger has not authorized, and it is exactly the event (C1) must absorb. For such a node the operative latency is the outage duration, not the contractual 5 minutes, and a buffer tuned on observed posting history is fitted on the wrong window. Equation~\eqref{eq:elleff} makes the latency observable rather than assumed, and (C2) converts an unbounded exposure into a bounded one by withdrawing the node.
+
+\emph{Cross-partition movement.} The distributed order manager performs node-down rebalancing, safety-stock substitution and split shipments, all of which change $I_{fk}$ at two nodes whose partitions have, by design, no cross-partition coordination---the classic availability-versus-consistency trade \cite{gilbert2002}. (C3) states the commit discipline that closes it.
+
+\emph{The circularity in buffer tuning.} Revision~4 auto-tuned $s_{fk}$ from each store's own posting-latency history, so the control signal and the risk share a source: when a store's integration degrades, the observed history lags the true latency and the buffer shrinks exactly when it should grow. Equation~\eqref{eq:elleff}'s heartbeat term is an \emph{independent} signal, which breaks the loop. \OPEN{current distribution of POS posting latency and connectivity uptime across active Exagon partners}{Head of Consignment Operations}{Phase 1 gate}
+\end{remark}
+
+Proposition~\ref{prop:atp} converts the consignment-store data-quality risk---the classic failure mode of ship-from-store programs---into an explicit, tunable and \emph{observable} policy implemented in the Virtual Inventory Service and monitored by Exagon cycle counts.
+
+\begin{table*}[t]
+\caption{State-of-the-Art Benchmark of Instant/Fast Fulfillment Architectures (compiled Aug.\ 2026). $\dagger$ operator-disclosed; $\ddagger$ trade press or third party, not operator-confirmed; $\star$ ParaExpress design target.}
+\label{tab:bench}
+\centering\footnotesize
+\begin{tabular}{@{}p{1.9cm}p{2.6cm}p{2.9cm}p{2.0cm}p{2.2cm}p{4.0cm}@{}}
+\toprule
+\textbf{Operator} & \textbf{Model} & \textbf{Node scale} & \textbf{Assortment/node} & \textbf{Promise} & \textbf{Key mechanism}\\
+\midrule
+Amazon & Regionalized FC + SSD sites & 600+ sites$\ddagger$; SSD ${\sim}10\%$ of FC size$\ddagger$ & FC wide; SSD fast movers$\ddagger$ & Same/next day$\dagger$; ${\sim}5$\,h SSD$\ddagger$ & 8 self-sufficient regions$\dagger$; 11-min pick-to-dock$\ddagger$; anticipatory placement$\dagger$\\
+Cainiao/Freshippo & Data-plane 3PL + store-as-warehouse & ${\sim}200$ warehouses$\ddagger$; stores 3$\ddagger$ & Store: full range$\ddagger$ & Half-day$\ddagger$; 30\,min (Hema)$\ddagger$ & Electronic waybill standard$\dagger$; in-aisle pick + conveyor consolidation$\ddagger$\\
+JD Logistics & Owned RDC$\to$FDC hierarchy & 800+ warehouses$\dagger$; 8 RDCs$\dagger$ & FDC: local fast movers$\dagger$ & ${\sim}90\%$ same/next day$\dagger$ & Deep first-party inventory$\dagger$; ML assortment + allocation + simulation$\dagger$\\
+Coupang & Density-first owned network & 100+ centers$\dagger$; 55M+ sq ft$\dagger$ & Wide$\dagger$ & Next day / dawn$\dagger$ & 70\% of population within ${\sim}11$\,km$\dagger$; membership flywheel$\dagger$\\
+Blinkit/Zepto & Dark stores & 1,100--1,800 stores$\ddagger$ & 1--3.5k SKUs$\ddagger$ & 10--20\,min$\ddagger$ & 2--3 min pick$\ddagger$; 1.5--3\,km radius$\ddagger$; AOV discipline$\ddagger$\\
+Walmart/Target & Ship-from-store & 3,900+ stores (WMT)$\dagger$ & Store range$\dagger$ & Same day$\dagger$ & Store estate as forward network$\dagger$; sortation for density$\dagger$\\
+SPX/Shopee (2025) & Marketplace carrier + MFCs & 514 cities$\ddagger$; 200 MFCs$\ddagger$ & Marketplace-wide$\ddagger$ & Same day/instant$\ddagger$ & Captive parcel network$\dagger$; tier-2/3 MFC program$\ddagger$\\
+Astro & Pure dark-store q-commerce & ${\sim}50$ stores (Jabodetabek)$\ddagger$ & ${\sim}1{,}500$ SKUs$\ddagger$ & ${\sim}15$--60\,min$\ddagger$ & Hyperlocal assortment per store$\ddagger$; 2--3\,km radius$\ddagger$\\
+\midrule
+\textbf{ParaExpress (this work)} & \textbf{Brand-owned hybrid}: store nodes + dark MFCs & per-metro: $\max(n_{\min},n^\star)$ (Thm.~\ref{thm:nodecount}, Prop.~\ref{prop:radius})$\star$ & 150--1,200 SKUs (Thm.~\ref{thm:assortment})$\star$ & $\le 60$\,min @ 95\% order fill (PX1)$\star$ & Channel-agnostic routing (Thm.~\ref{thm:routing})$\star$; consignment estate as zero-capex coverage (Cor.~\ref{cor:stores})$\star$; rented mid/last mile$\star$\\
+\bottomrule
+\end{tabular}
+\end{table*}
