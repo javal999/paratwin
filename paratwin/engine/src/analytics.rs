@@ -177,6 +177,9 @@ pub fn phi_inv(p: f64) -> f64 {
     ];
     const P_LOW: f64 = 0.02425;
 
+    // The `<` here survives mutation to `<=`: the two branches agree at
+    // p == P_LOW to well inside 1e-8, so no honest test separates them.
+    // Equivalent mutant, not a coverage gap.
     let x = if p < P_LOW {
         let q = (-2.0 * p.ln()).sqrt();
         (((((C[0] * q + C[1]) * q + C[2]) * q + C[3]) * q + C[4]) * q + C[5])
@@ -412,6 +415,29 @@ mod tests {
         assert!(phi_inv(0.5).abs() < 1e-9, "median must be 0");
         // symmetry
         assert!((phi_inv(0.1) + phi_inv(0.9)).abs() < 1e-9);
+    }
+
+    /// The tails are where base stock actually gets sized, and they are served
+    /// by different branches of the rational approximation than the centre.
+    /// These values are the true normal quantiles; they pin each branch
+    /// separately so a wrong branch boundary cannot hide behind the Halley
+    /// refinement.
+    #[test]
+    fn phi_inv_is_accurate_in_both_tails() {
+        // lower tail, below P_LOW = 0.02425
+        for (p, want) in [
+            (1e-6, -4.753_424_308_8),
+            (1e-4, -3.719_016_485_5),
+            (1e-3, -3.090_232_306_2),
+        ] {
+            assert!((phi_inv(p) - want).abs() < 1e-8, "phi_inv({p}) = {}", phi_inv(p));
+        }
+        // exactly on the branch boundary
+        assert!((phi_inv(0.02425) + 1.972_961_051_3).abs() < 1e-8);
+        // upper tail, above 1 - P_LOW
+        for (p, want) in [(0.999, 3.090_232_306_2), (0.9999, 3.719_016_485_5)] {
+            assert!((phi_inv(p) - want).abs() < 1e-8, "phi_inv({p}) = {}", phi_inv(p));
+        }
     }
 
     /// PTW-01 / C-02. Lognormal quantiles used by the corrected radius.

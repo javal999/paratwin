@@ -169,6 +169,9 @@ impl BasketSkuDist {
         let (mut lo, mut hi) = (0.0f64, 1.0f64);
         for _ in 0..200 {
             let mid = 0.5 * (lo + hi);
+            // `<` survives mutation to `<=`: the two differ only when
+            // G(mid) == alpha exactly, and both keep the root bracketed and
+            // converge to it. Equivalent mutant, not a coverage gap.
             if self.generating_fn(mid) < alpha {
                 lo = mid;
             } else {

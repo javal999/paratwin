@@ -595,6 +595,7 @@ Rationale: lateral replenishment needs the returns ledger transaction shape; the
 - `rho` in C-03/C-04 is fitted outside this repository and arrives as a scenario parameter; no fitting procedure is in scope here.
 - The basket-value and SKU-count distributions in C-01, C-06 and C-08 will be supplied as scenario inputs; the repository has no historical basket data.
 - `T_route` in C-02 maps to the in-node-to-road handover, closest to the existing `HANDOVER_MIN` constant (`des.rs:18`), but the report may define it more broadly.
+- C-07 states four `g` values but not the assignment rule. Only one reading reproduces all four: `contribution[node][zone]` as a per-unit rate, whole-zone indivisible assignment, and capacity binding on summed zone demand. Confirmed numerically in wave 1 and recorded in the `capacitated_coverage` docstring.
 - "Node throughput cap" in C-07 maps to the existing `pickers * QUEUE_CAP_FACTOR` wave cap (`des.rs:481-487`); if Revision 5 means a daily cap, PTW-08 grows.
 - The Rev-5 PDF in `deliverables/` was not read for this pass; the correction register in `docs/paratwin-rev5-epic-prompt.md` was treated as the specification, per that prompt's own instruction.
 - Point values assume the existing DES tests must stay green; several of them (`lib.rs:476-638`) pin current behaviour and will need updating rather than deleting.
@@ -614,6 +615,7 @@ Rationale: lateral replenishment needs the returns ledger transaction shape; the
 
 ## 7. Questions
 
+- **C-02's `v_(1-e2)` appears to be a typo for `v_(e2)`, and the report needs the same fix.** Read literally the formula takes the *fast* speed quantile, giving R\* = 52.4 km and degenerating to (e1,e2) = (0.05, 0). The low-tail reading reproduces the correction's own Check line exactly — R\* = 7.1240 at (0.0174, 0.0326), n_min = 7 — and a conservative radius needs the slow-speed quantile, so it is also the only physically sensible reading. Wave 1 verification confirmed this numerically. PTW-06 will be built against `v_(e2)`; someone must correct the Revision-5 text. — blocks nothing, but PTW-06 ships against a formula the report states differently.
 - Is `rho` supplied per scenario, or must ParaTwin fit it? — blocks PTW-04, PTW-05.
 - Where does the distinct-SKU-per-basket distribution come from? — blocks PTW-02, and therefore PTW-03 and PTW-12.
 - What is the minimum contribution threshold, and who owns it? — blocks PTW-10, and therefore PTW-11.
