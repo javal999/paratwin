@@ -125,6 +125,41 @@ impl Scenario {
     }
 }
 
+/// PTW-02 / C-01: distribution of distinct SKUs per basket.
+///
+/// The PX1 promise is measured on the order, and an order fails if any SKU in
+/// its basket is missing. `p[j]` is the probability a basket holds exactly `j`
+/// distinct SKUs, so `p[0]` is unused and the generating function is
+/// G(x) = sum_j p_j x^j.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BasketSkuDist {
+    /// p[j] = P(basket has exactly j distinct SKUs); index 0 carries no mass
+    pub p: Vec<f64>,
+}
+
+impl BasketSkuDist {
+    /// Every basket holds exactly `k` distinct SKUs (the C-01 Check case).
+    pub fn exactly(_k: usize) -> Self {
+        todo!("PTW-02")
+    }
+
+    /// G(x) = sum_j p_j x^j -- the order fill rate at item fill rate x.
+    pub fn generating_fn(&self, _x: f64) -> f64 {
+        todo!("PTW-02")
+    }
+
+    /// beta* = G-inverse(alpha): the item fill rate that delivers order fill
+    /// rate `alpha`. Reading Phi-inverse(alpha) directly is the C-01 defect.
+    pub fn inverse_g(&self, _alpha: f64) -> f64 {
+        todo!("PTW-02")
+    }
+
+    /// Mean distinct SKUs per basket.
+    pub fn mean(&self) -> f64 {
+        todo!("PTW-02")
+    }
+}
+
 /// Hourly demand profile for Indonesian e-commerce (share of daily demand
 /// per hour; two peaks: lunchtime and the 19:00-21:00 live-commerce prime).
 pub const HOURLY: [f64; 24] = [
@@ -270,4 +305,55 @@ pub struct RunResult {
     pub nodes: Vec<NodeStat>,
     pub zones: Vec<ZoneStat>,
     pub replication_kpis: Vec<KpiSummary>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    /// PTW-02 / C-01. Expected values are the correction's Check line, not
+    /// anything read back out of this implementation.
+    #[test]
+    fn basket_generating_function_matches_check() {
+        let d = BasketSkuDist::exactly(3);
+        // C-01 Check: with beta = 0.98 the order fill rate is 0.941192
+        assert!((d.generating_fn(0.98) - 0.941192).abs() < 1e-6, "G(0.98)");
+        // and beta* = G-inverse(0.95) = 0.983048
+        assert!((d.inverse_g(0.95) - 0.983048).abs() < 1e-6, "beta*");
+        assert!((d.mean() - 3.0).abs() < 1e-12);
+        // a one-SKU basket is the degenerate case where order == item fill
+        let single = BasketSkuDist::exactly(1);
+        assert!((single.generating_fn(0.93) - 0.93).abs() < 1e-12);
+        assert!((single.inverse_g(0.93) - 0.93).abs() < 1e-9);
+    }
+
+    proptest! {
+        /// G and its inverse must round-trip, and multi-SKU baskets must
+        /// always demand a *higher* item fill rate than the order target --
+        /// that gap is the whole point of C-01.
+        #[test]
+        fn inverse_g_round_trips_and_exceeds_target(
+            k in 1usize..8, alpha in 0.50f64..0.999
+        ) {
+            let d = BasketSkuDist::exactly(k);
+            let beta = d.inverse_g(alpha);
+            prop_assert!((d.generating_fn(beta) - alpha).abs() < 1e-9, "round trip");
+            prop_assert!(beta >= alpha - 1e-12, "item fill must not be below order fill");
+            if k > 1 {
+                prop_assert!(beta > alpha, "multi-SKU baskets need a strictly higher item fill");
+            }
+        }
+
+        /// G is a probability generating function: increasing on [0,1] with
+        /// G(0) = 0 for baskets that always hold at least one SKU, G(1) = 1.
+        #[test]
+        fn generating_fn_is_a_cdf_like_map(k in 1usize..8, x in 0.0f64..1.0) {
+            let d = BasketSkuDist::exactly(k);
+            prop_assert!((d.generating_fn(1.0) - 1.0).abs() < 1e-12);
+            prop_assert!(d.generating_fn(0.0).abs() < 1e-12);
+            prop_assert!(d.generating_fn(x) <= d.generating_fn((x + 1e-4).min(1.0)) + 1e-12);
+            prop_assert!(d.generating_fn(x) <= x + 1e-12, "G(x) <= x for k >= 1");
+        }
+    }
 }
