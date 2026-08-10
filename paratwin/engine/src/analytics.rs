@@ -87,9 +87,15 @@ pub fn n_min(area_km2: f64, speed_kmh: f64, tau_min: f64, t_node_min: f64, eta: 
     (area_km2 / (eta * std::f64::consts::PI * r * r)).ceil()
 }
 
-/// Greedy submodular coverage ranking (Theorem 2 / Corollary 1):
-/// candidates ranked by marginal covered demand within radius_km.
+/// Greedy coverage ranking (Theorem 2 / Corollary 1): candidates ranked by
+/// marginal covered demand within radius_km, with marginals recomputed after
+/// every activation rather than ranked once and iterated.
 /// Returns (candidate_index, marginal_gain, cumulative_coverage share).
+///
+/// No (1-1/e) guarantee is claimed. That bound is proved for uncapacitated
+/// nodes; under binding throughput caps and whole-order assignment, capacity
+/// creates complementarity and coverage is not submodular, so it does not
+/// transfer. See `capacitated_coverage` for the counterexample (Rev 5, C-07).
 pub fn greedy_coverage(
     zone_xy_w: &[(f64, f64, f64)],
     candidates: &[(f64, f64)],
@@ -141,23 +147,118 @@ pub fn pooled_safety_stock(z: f64, sigma: f64, n: f64) -> f64 {
 // ---------------- Revision 5 corrections ----------------
 
 /// PTW-01 / C-01: standard normal inverse CDF.
-pub fn phi_inv(_p: f64) -> f64 {
-    todo!("PTW-01")
+///
+/// Acklam's rational approximation (relative error < 1.15e-9), refined by one
+/// Halley step against erf so the result is accurate to full f64 precision.
+/// C-01 sizes base stock from this, so the quantile has to be exact rather
+/// than table-lookup close.
+pub fn phi_inv(p: f64) -> f64 {
+    if p <= 0.0 {
+        return f64::NEG_INFINITY;
+    }
+    if p >= 1.0 {
+        return f64::INFINITY;
+    }
+    const A: [f64; 6] = [
+        -3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02,
+        1.38357751867269e+02, -3.066479806614716e+01, 2.50662827745924e+00,
+    ];
+    const B: [f64; 5] = [
+        -5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02,
+        6.680131188771972e+01, -1.328068155288572e+01,
+    ];
+    const C: [f64; 6] = [
+        -7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00,
+        -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00,
+    ];
+    const D: [f64; 4] = [
+        7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00,
+        3.754408661907416e+00,
+    ];
+    const P_LOW: f64 = 0.02425;
+
+    let x = if p < P_LOW {
+        let q = (-2.0 * p.ln()).sqrt();
+        (((((C[0] * q + C[1]) * q + C[2]) * q + C[3]) * q + C[4]) * q + C[5])
+            / ((((D[0] * q + D[1]) * q + D[2]) * q + D[3]) * q + 1.0)
+    } else if p <= 1.0 - P_LOW {
+        let q = p - 0.5;
+        let r = q * q;
+        (((((A[0] * r + A[1]) * r + A[2]) * r + A[3]) * r + A[4]) * r + A[5]) * q
+            / (((((B[0] * r + B[1]) * r + B[2]) * r + B[3]) * r + B[4]) * r + 1.0)
+    } else {
+        let q = (-2.0 * (1.0 - p).ln()).sqrt();
+        -(((((C[0] * q + C[1]) * q + C[2]) * q + C[3]) * q + C[4]) * q + C[5])
+            / ((((D[0] * q + D[1]) * q + D[2]) * q + D[3]) * q + 1.0)
+    };
+
+    // one Halley refinement: e = Phi(x) - p, u = e * sqrt(2pi) * exp(x^2/2)
+    let e = 0.5 * erfc(-x / std::f64::consts::SQRT_2) - p;
+    let u = e * (2.0 * std::f64::consts::PI).sqrt() * (x * x / 2.0).exp();
+    x - u / (1.0 + x * u / 2.0)
+}
+
+/// Complementary error function, needed only to refine `phi_inv`.
+/// Numerical Recipes' Chebyshev form; fractional error < 1.2e-7, which is far
+/// inside what one Halley step needs to converge.
+fn erfc(x: f64) -> f64 {
+    let z = x.abs();
+    let t = 2.0 / (2.0 + z);
+    let ty = 4.0 * t - 2.0;
+    const COF: [f64; 28] = [
+        -1.3026537197817094, 6.419697923564903e-1, 1.9476473204185836e-2,
+        -9.56151478680863e-3, -9.46595344482036e-4, 3.66839497852761e-4,
+        4.2523324806907e-5, -2.0278578112534e-5, -1.624290004647e-6,
+        1.303655835580e-6, 1.5626441722e-8, -8.5238095915e-8,
+        6.529054439e-9, 5.059343495e-9, -9.91364156e-10,
+        -2.27365122e-10, 9.6467911e-11, 2.394038e-12,
+        -6.886027e-12, 8.94487e-13, 3.13092e-13,
+        -1.12708e-13, 3.81e-16, 7.106e-15,
+        -1.523e-15, -9.4e-17, 1.21e-16, -2.8e-17,
+    ];
+    let mut d = 0.0f64;
+    let mut dd = 0.0f64;
+    for j in (1..COF.len()).rev() {
+        let tmp = d;
+        d = ty * d - dd + COF[j];
+        dd = tmp;
+    }
+    let ans = t * (-z * z + 0.5 * (COF[0] + ty * d) - dd).exp();
+    if x >= 0.0 { ans } else { 2.0 - ans }
 }
 
 /// PTW-01 / C-02: q-quantile of a lognormal given its median and log-scale.
-pub fn lognormal_quantile(_median: f64, _log_scale: f64, _q: f64) -> f64 {
-    todo!("PTW-01")
+/// The median is exp(mu), so the quantile is median * exp(sigma * z_q).
+pub fn lognormal_quantile(median: f64, log_scale: f64, q: f64) -> f64 {
+    median * (log_scale * phi_inv(q)).exp()
 }
 
 /// PTW-04 / C-03: correlated pooling factor, replacing sqrt(n).
-pub fn psi(_n: f64, _rho: f64) -> f64 {
-    todo!("PTW-04")
+///
+/// Psi(n, rho) = sqrt(n / (1 + (n-1) rho)). The sqrt(n) law it replaces
+/// assumes independent zone demand; the demand model has correlated bursts and
+/// the order manager re-pools through substitution and rebalancing, so the
+/// uncorrected law overstates the penalty for decentralising. `rho` is a
+/// fitted parameter, not a constant.
+pub fn psi(n: f64, rho: f64) -> f64 {
+    let denom = 1.0 + (n - 1.0) * rho;
+    if denom <= 0.0 {
+        return f64::INFINITY;
+    }
+    (n / denom).sqrt()
 }
 
 /// PTW-07 / C-09: batch-arrival staffing inflation for a wave of `wave_seconds`.
-pub fn batch_arrival_inflation(_lambda_per_hour: f64, _wave_seconds: f64) -> f64 {
-    todo!("PTW-07")
+///
+/// Square-root staffing assumes Poisson arrivals, but work reaches pickers in
+/// waves, so the variability seen at the node is higher. The corrected form is
+/// c_f = rho_f + beta_delta * sqrt(1 + lambda_f * Delta / 2) * sqrt(rho_f);
+/// this returns the sqrt(1 + lambda*Delta/2) factor, with Delta in hours to
+/// match `lambda_per_hour`. Delta is a tuned parameter traded against routing
+/// quality, not a constant.
+pub fn batch_arrival_inflation(lambda_per_hour: f64, wave_seconds: f64) -> f64 {
+    let delta_hours = wave_seconds / 3600.0;
+    (1.0 + lambda_per_hour * delta_hours / 2.0).max(1.0).sqrt()
 }
 
 /// PTW-08 / C-07: best total contribution from activating node set `active`,
@@ -166,12 +267,83 @@ pub fn batch_arrival_inflation(_lambda_per_hour: f64, _wave_seconds: f64) -> f64
 /// `contribution[node][zone]` is a per-unit rate; a zone's whole demand goes to
 /// at most one active node, and a node's assigned demand may not exceed its cap.
 pub fn capacitated_coverage(
-    _active: &[usize],
-    _zone_demand: &[f64],
-    _node_capacity: &[f64],
-    _contribution: &[Vec<f64>],
+    active: &[usize],
+    zone_demand: &[f64],
+    node_capacity: &[f64],
+    contribution: &[Vec<f64>],
 ) -> f64 {
-    todo!("PTW-08")
+    if active.is_empty() || zone_demand.is_empty() {
+        return 0.0;
+    }
+    // Zones are indivisible, so this is a generalised assignment problem and
+    // is NP-hard in general. Branch and bound is exact; the admissible bound
+    // is each remaining zone taking its best rate over the active set with
+    // capacity ignored. Large layouts should go through the LP-rounding
+    // cross-check (PTW-09) rather than lean on this.
+    let order: Vec<usize> = {
+        let mut z: Vec<usize> = (0..zone_demand.len()).collect();
+        z.sort_by(|a, b| zone_demand[*b].partial_cmp(&zone_demand[*a]).unwrap());
+        z
+    };
+    // suffix[i] = optimistic value of zones order[i..]
+    let mut suffix = vec![0.0; order.len() + 1];
+    for i in (0..order.len()).rev() {
+        let z = order[i];
+        let best = active
+            .iter()
+            .map(|&n| contribution[n][z])
+            .fold(0.0f64, f64::max);
+        suffix[i] = suffix[i + 1] + zone_demand[z] * best.max(0.0);
+    }
+
+    struct Ctx<'a> {
+        active: &'a [usize],
+        order: &'a [usize],
+        zone_demand: &'a [f64],
+        node_capacity: &'a [f64],
+        contribution: &'a [Vec<f64>],
+        suffix: &'a [f64],
+        load: Vec<f64>,
+        best: f64,
+    }
+
+    fn search(c: &mut Ctx, i: usize, acc: f64) {
+        if acc + c.suffix[i] <= c.best + 1e-12 {
+            return; // cannot beat the incumbent
+        }
+        if i == c.order.len() {
+            if acc > c.best {
+                c.best = acc;
+            }
+            return;
+        }
+        let z = c.order[i];
+        let d = c.zone_demand[z];
+        for k in 0..c.active.len() {
+            let n = c.active[k];
+            if c.load[n] + d <= c.node_capacity[n] + 1e-12 {
+                c.load[n] += d;
+                let gain = d * c.contribution[n][z];
+                search(c, i + 1, acc + gain);
+                c.load[n] -= d;
+            }
+        }
+        // leaving a zone unserved is always allowed
+        search(c, i + 1, acc);
+    }
+
+    let mut ctx = Ctx {
+        active,
+        order: &order,
+        zone_demand,
+        node_capacity,
+        contribution,
+        suffix: &suffix,
+        load: vec![0.0; node_capacity.len()],
+        best: 0.0,
+    };
+    search(&mut ctx, 0, 0.0);
+    ctx.best
 }
 
 #[cfg(test)]

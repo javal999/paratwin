@@ -184,7 +184,7 @@ export default function Decisions() {
       <section className="card" id="q-stores">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-bold text-paragon-700">3 · Consignment store activation order <span className="text-xs font-normal text-slate-400">(Corollary 1: greedy marginal coverage, (1−1/e) guarantee)</span></h3>
+            <h3 className="font-bold text-paragon-700">3 · Consignment store activation order <span className="text-xs font-normal text-slate-400">(greedy marginal coverage, re-ranked after each activation)</span></h3>
             <p className="text-sm text-slate-500 mt-1">Ranks candidate store locations by marginal covered demand — activate top of list first, re-rank after each wave.</p>
           </div>
           <button className="btn-primary" onClick={runStores} disabled={busy !== null}>
@@ -214,12 +214,16 @@ export default function Decisions() {
               </tbody>
             </table>
             <div className="text-sm text-slate-500 leading-relaxed bg-slate-50 rounded-lg p-4 self-start">
-              <b className="text-paragon-700">Why greedy order matters.</b> Coverage is submodular
-              (diminishing returns): the value of a store depends on which stores are already active.
-              Ranking by <i>marginal</i> gain — not store size or standalone sales — is provably within
-              63.2% of the optimal activation set at every prefix, and in practice much closer.
-              Store nodes carry ≈ zero fixed cost, so any candidate with positive marginal coverage
-              improves profit (Corollary 1 of the ParaExpress report).
+              <b className="text-paragon-700">Why greedy order matters.</b> The value of a store
+              depends on which stores are already active, so ranking by <i>marginal</i> gain — not
+              store size or standalone sales — beats ranking by any standalone measure. Marginals are
+              recomputed after every activation rather than ranked once.
+              <br /><br />
+              <b className="text-paragon-700">No worst-case guarantee is claimed.</b> The (1−1/e)
+              bound holds for uncapacitated nodes. These nodes have binding throughput caps, and
+              under whole-order assignment capacity creates complementarity — a node&rsquo;s marginal
+              value can <i>rise</i> as the active set grows — so coverage is not submodular and the
+              bound does not transfer (Revision 5, C-07).
             </div>
           </div>
         )}

@@ -13,8 +13,9 @@ pub mod vrp;
 use model::*;
 use serde::{Deserialize, Serialize};
 
-/// Auto-layout: place nodes on the demand field by greedy submodular coverage
-/// (Theorem 2 / Corollary 1 of the report).
+/// Auto-layout: place nodes on the demand field by greedy marginal coverage
+/// (Theorem 2 / Corollary 1 of the report). No worst-case bound is claimed --
+/// see `analytics::greedy_coverage` (Rev 5, C-07).
 pub fn auto_layout(
     metro_km: f64,
     n_dark: u32,
@@ -442,7 +443,8 @@ pub struct StoreRankRow {
     pub cumulative_coverage: f64,
 }
 
-/// Greedy consignment-store activation ranking (Corollary 1).
+/// Greedy consignment-store activation ranking (Corollary 1). Marginals are
+/// recomputed after each activation; no (1-1/e) bound is claimed (Rev 5, C-07).
 pub fn rank_store_activations(base: &Scenario, take: usize) -> Vec<StoreRankRow> {
     let field = demand::DemandField::new(base);
     let zones: Vec<(f64, f64, f64)> = (0..field.weights.len())

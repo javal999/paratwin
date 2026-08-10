@@ -139,24 +139,48 @@ pub struct BasketSkuDist {
 
 impl BasketSkuDist {
     /// Every basket holds exactly `k` distinct SKUs (the C-01 Check case).
-    pub fn exactly(_k: usize) -> Self {
-        todo!("PTW-02")
+    pub fn exactly(k: usize) -> Self {
+        let mut p = vec![0.0; k + 1];
+        p[k] = 1.0;
+        BasketSkuDist { p }
     }
 
     /// G(x) = sum_j p_j x^j -- the order fill rate at item fill rate x.
-    pub fn generating_fn(&self, _x: f64) -> f64 {
-        todo!("PTW-02")
+    pub fn generating_fn(&self, x: f64) -> f64 {
+        self.p
+            .iter()
+            .enumerate()
+            .map(|(j, pj)| pj * x.powi(j as i32))
+            .sum()
     }
 
     /// beta* = G-inverse(alpha): the item fill rate that delivers order fill
     /// rate `alpha`. Reading Phi-inverse(alpha) directly is the C-01 defect.
-    pub fn inverse_g(&self, _alpha: f64) -> f64 {
-        todo!("PTW-02")
+    ///
+    /// G is continuous and non-decreasing on [0,1] with G(0) = 0 and G(1) = 1
+    /// whenever every basket holds at least one SKU, so bisection converges.
+    pub fn inverse_g(&self, alpha: f64) -> f64 {
+        if alpha <= 0.0 {
+            return 0.0;
+        }
+        if alpha >= 1.0 {
+            return 1.0;
+        }
+        let (mut lo, mut hi) = (0.0f64, 1.0f64);
+        for _ in 0..200 {
+            let mid = 0.5 * (lo + hi);
+            if self.generating_fn(mid) < alpha {
+                lo = mid;
+            } else {
+                hi = mid;
+            }
+        }
+        0.5 * (lo + hi)
     }
 
     /// Mean distinct SKUs per basket.
     pub fn mean(&self) -> f64 {
-        todo!("PTW-02")
+        self.p.iter().enumerate().map(|(j, pj)| j as f64 * pj).sum()
     }
 }
 

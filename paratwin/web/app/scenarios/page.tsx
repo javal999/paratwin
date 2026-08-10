@@ -254,8 +254,9 @@ export default function Scenarios() {
               </div>
               <MapPreview metroKm={sc.metro_km} nodes={sc.nodes} />
               <p className="text-xs text-slate-400 mt-2">
-                Placement uses the submodular greedy of Theorem 2 on the demand field — each node is
-                dropped where it adds the largest marginal covered demand (63.2% worst-case guarantee).
+                Placement uses the greedy of Theorem 2 on the demand field — each node is dropped
+                where it adds the largest marginal covered demand, with marginals recomputed after
+                every activation. No worst-case guarantee applies once node throughput caps bind.
               </p>
             </div>
           </div>

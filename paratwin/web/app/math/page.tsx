@@ -29,7 +29,7 @@ const MODELS = [
 
 const THEOREMS = [
   { ref: "Theorem 1", claim: "SLA-constrained network design is NP-hard", use: "why design runs through the twin, not one exact solve" },
-  { ref: "Theorem 2 + Cor. 1", claim: "coverage is submodular; greedy ≥ 63.2% of optimum", use: "auto-layout and store-activation ranking" },
+  { ref: "Theorem 2 + Cor. 1", claim: "greedy marginal coverage, re-ranked after each activation — no worst-case bound under binding throughput caps (Rev 5, C-07)", use: "auto-layout and store-activation ranking" },
   { ref: "Theorem 3", claim: "C(n)=Fn+a√n+b/√n has a unique minimizer n*", use: "network-size sweep recommendation" },
   { ref: "Prop. 2", claim: "SLA floor n_min = A/(ηπR²), R = v(τ−t_node)⁺", use: "feasibility filter in wave routing" },
   { ref: "Prop. 3", claim: "M/M/c delay probability; square-root staffing", use: "picker staffing per node; validated below" },

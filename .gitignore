@@ -1,6 +1,9 @@
 # Rust (paratwin/ is a cargo workspace)
 target/
 **/*.rs.bk
+# cargo-mutants scratch output
+mutants.out/
+mutants.out.old/
 
 # Node / Next.js
 node_modules/
