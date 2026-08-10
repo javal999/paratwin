@@ -342,7 +342,7 @@ All closed forms in this section are cross-checked in ParaTwin against brute-for
 \subsection{$^{\mathrm{R5}}$ The SLA Feasibility Floor}
 
 \begin{proposition}[$^{\mathrm{R5}}$ Distribution-free service radius and node floor]\label{prop:radius}
-Fix promise $(\tau,\alpha)$ and write $\varepsilon=1-\alpha$ for the risk budget. Let $t^{q}_{\mathrm{node}}$ denote the $q$-quantile of in-node time and let $v_{q}$ denote the $q$-quantile effective speed over the catchment, i.e.\ the speed such that travel over distance $R$ exceeds $R/v_q$ with probability at most $1-q$. For any split $\varepsilon_1+\varepsilon_2=\varepsilon$ with $\varepsilon_1,\varepsilon_2>0$, the radius
+Fix promise $(\tau,\alpha)$ and write $\varepsilon=1-\alpha$ for the risk budget. Let $t^{q}_{\mathrm{node}}$ denote the $q$-quantile of in-node time and let $v_{q}$ denote the effective speed over the catchment that is \emph{attained or exceeded} with probability at least $q$---equivalently, the $(1-q)$-quantile of the effective-speed distribution, so that travel over distance $R$ exceeds $R/v_q$ with probability at most $1-q$. Note the indexing: $v_q$ is a lower-tail speed, so a larger $q$ names a \emph{slower} guaranteed speed, matching the convention that $t^{q}_{\mathrm{node}}$ is an upper-tail time. For any split $\varepsilon_1+\varepsilon_2=\varepsilon$ with $\varepsilon_1,\varepsilon_2>0$, the radius
 \begin{equation}\label{eq:radius}
 R(\varepsilon_1,\varepsilon_2)=v_{1-\varepsilon_2}\cdot\bigl(\tau-T_{\mathrm{route}}-t^{1-\varepsilon_1}_{\mathrm{node}}\bigr)^{+}
 \end{equation}

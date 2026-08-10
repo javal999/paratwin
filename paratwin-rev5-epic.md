@@ -165,6 +165,9 @@ Current:       analytics.rs:83 `let r = (speed_kmh / 60.0) * (tau_min -
 Required:      R(e1,e2) = v_(1-e2) * (tau - T_route - t_node_(1-e1)), clamped
                at zero, maximised over e1 + e2 = 1 - alpha. Then
                n_min = ceil(A / (eta * pi * R*^2)).
+               v_q is LOWER-tail: the speed attained or exceeded with
+               probability at least q, i.e. the (1-q)-quantile of speed.
+               t_node_q is upper-tail. Inverting either inflates R*.
 Acceptance:    Given tau = 60, T_route = 4, alpha = 0.95, in-node time
                lognormal (median 9, log-scale 0.35), effective speed lognormal
                (median 20 km/h, log-scale 0.30), When R* is maximised, Then
@@ -615,7 +618,7 @@ Rationale: lateral replenishment needs the returns ledger transaction shape; the
 
 ## 7. Questions
 
-- **C-02's `v_(1-e2)` appears to be a typo for `v_(e2)`, and the report needs the same fix.** Read literally the formula takes the *fast* speed quantile, giving R\* = 52.4 km and degenerating to (e1,e2) = (0.05, 0). The low-tail reading reproduces the correction's own Check line exactly — R\* = 7.1240 at (0.0174, 0.0326), n_min = 7 — and a conservative radius needs the slow-speed quantile, so it is also the only physically sensible reading. Wave 1 verification confirmed this numerically. PTW-06 will be built against `v_(e2)`; someone must correct the Revision-5 text. — blocks nothing, but PTW-06 ships against a formula the report states differently.
+- **C-02's `v_q` was defined two contradictory ways; fixed in the report, no formula change.** `04-structural-results.tex:120` glossed `v_q` as "the q-quantile effective speed" and then, after an "i.e.", gave the operational definition "the speed such that travel over distance R exceeds R/v_q with probability at most 1-q". Since T = R/V the second says `Pr[V < v_q] <= 1-q`, making `v_q` the **(1-q)-quantile** of speed — the complement of the gloss. Equation (2) and the Boole proof are correct under the operational definition; only the gloss was wrong, and the correction register had propagated the gloss alone. Reading it that way gives R\* = 52.4 km degenerating to (e1,e2) = (0.05, 0); the correct reading reproduces the Check line exactly — R\* = 7.1240 at (0.0174, 0.0326), n_min = 7. The definition is now stated once, unambiguously, in `tex/sections/04-structural-results.tex`, the shipped `-singlefile.tex`, and `docs/paratwin-rev5-epic-prompt.md`. PTW-06 implements `v_(1-e2)` as written, with `v_q` lower-tail.
 - Is `rho` supplied per scenario, or must ParaTwin fit it? — blocks PTW-04, PTW-05.
 - Where does the distinct-SKU-per-basket distribution come from? — blocks PTW-02, and therefore PTW-03 and PTW-12.
 - What is the minimum contribution threshold, and who owns it? — blocks PTW-10, and therefore PTW-11.
