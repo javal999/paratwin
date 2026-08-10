@@ -178,8 +178,8 @@ pub fn phi_inv(p: f64) -> f64 {
     const P_LOW: f64 = 0.02425;
 
     // The `<` here survives mutation to `<=`: the two branches agree at
-    // p == P_LOW to well inside 1e-8, so no honest test separates them.
-    // Equivalent mutant, not a coverage gap.
+    // p == P_LOW to well inside the 1e-12 the tests assert, so no honest test
+    // separates them. Equivalent mutant, not a coverage gap.
     let x = if p < P_LOW {
         let q = (-2.0 * p.ln()).sqrt();
         (((((C[0] * q + C[1]) * q + C[2]) * q + C[3]) * q + C[4]) * q + C[5])
@@ -422,21 +422,29 @@ mod tests {
     /// These values are the true normal quantiles; they pin each branch
     /// separately so a wrong branch boundary cannot hide behind the Halley
     /// refinement.
+    ///
+    /// The tolerance is 1e-12, not 1e-8, on purpose. Acklam's rational
+    /// approximation alone is good to ~1.15e-9, so a looser bound would pass
+    /// with the Halley refinement deleted or corrupted -- mutation testing
+    /// proved exactly that. At 1e-12 the refinement is load-bearing and any
+    /// damage to it fails this test.
     #[test]
     fn phi_inv_is_accurate_in_both_tails() {
-        // lower tail, below P_LOW = 0.02425
         for (p, want) in [
-            (1e-6, -4.753_424_308_8),
-            (1e-4, -3.719_016_485_5),
-            (1e-3, -3.090_232_306_2),
+            (1e-6, -4.753_424_308_822_899),
+            (1e-4, -3.719_016_485_455_68),
+            (1e-3, -3.090_232_306_167_813),
+            // exactly on the branch boundary
+            (0.02425, -1.972_961_051_311_884_5),
+            // centre
+            (0.95, 1.644_853_626_951_471_5),
+            (0.983048, 2.121_211_594_328_548_8),
+            // upper tail, above 1 - P_LOW
+            (0.999, 3.090_232_306_167_813),
+            (0.9999, 3.719_016_485_455_708_4),
         ] {
-            assert!((phi_inv(p) - want).abs() < 1e-8, "phi_inv({p}) = {}", phi_inv(p));
-        }
-        // exactly on the branch boundary
-        assert!((phi_inv(0.02425) + 1.972_961_051_3).abs() < 1e-8);
-        // upper tail, above 1 - P_LOW
-        for (p, want) in [(0.999, 3.090_232_306_2), (0.9999, 3.719_016_485_5)] {
-            assert!((phi_inv(p) - want).abs() < 1e-8, "phi_inv({p}) = {}", phi_inv(p));
+            let got = phi_inv(p);
+            assert!((got - want).abs() < 1e-12, "phi_inv({p}) = {got}, want {want}");
         }
     }
 
@@ -502,7 +510,92 @@ mod tests {
         assert!(large > small, "complementarity: marginal must rise, {small} -> {large}");
     }
 
+    /// Exhaustive optimum: every zone goes to one active node or nowhere,
+    /// respecting capacity. Exponential, so only for tiny instances -- but it
+    /// is derived straight from the C-07 rule, independent of the branch and
+    /// bound under test. Same cross-check pattern as `routing::tests::brute`.
+    fn brute_coverage(
+        active: &[usize],
+        demand: &[f64],
+        capacity: &[f64],
+        contribution: &[Vec<f64>],
+    ) -> f64 {
+        let slots = active.len() + 1; // +1 = leave the zone unserved
+        let mut best = 0.0f64;
+        let total = slots.pow(demand.len() as u32);
+        for mut code in 0..total {
+            let mut load = vec![0.0f64; capacity.len()];
+            let mut val = 0.0;
+            let mut ok = true;
+            for (z, d) in demand.iter().enumerate() {
+                let pick = code % slots;
+                code /= slots;
+                if pick == active.len() {
+                    continue; // unserved
+                }
+                let n = active[pick];
+                load[n] += d;
+                if load[n] > capacity[n] + 1e-12 {
+                    ok = false;
+                    break;
+                }
+                val += d * contribution[n][z];
+            }
+            if ok && val > best {
+                best = val;
+            }
+        }
+        best
+    }
+
+    /// Empty inputs must not panic and must score zero.
+    #[test]
+    fn capacitated_coverage_handles_empty_inputs() {
+        let c = vec![vec![1.0]];
+        assert_eq!(capacitated_coverage(&[], &[1.0], &[1.0], &c), 0.0);
+        assert_eq!(capacitated_coverage(&[0], &[], &[1.0], &c), 0.0);
+        assert_eq!(capacitated_coverage(&[], &[], &[1.0], &c), 0.0);
+    }
+
     proptest! {
+        /// The branch-and-bound must agree with exhaustive search on every
+        /// instance. The C-07 counterexample is too small to exercise pruning,
+        /// so a wrong admissible bound would silently cut the true optimum on
+        /// anything larger -- this is what catches that.
+        #[test]
+        fn capacitated_coverage_matches_exhaustive_search(
+            demand in proptest::collection::vec(0.1f64..2.0, 1..6),
+            caps in proptest::collection::vec(0.1f64..2.5, 1..4),
+            rates in proptest::collection::vec(0.0f64..2.0, 18..19),
+        ) {
+            let n_nodes = caps.len();
+            let contribution: Vec<Vec<f64>> = (0..n_nodes)
+                .map(|n| (0..demand.len()).map(|z| rates[(n * 6 + z) % rates.len()]).collect())
+                .collect();
+            let active: Vec<usize> = (0..n_nodes).collect();
+            let got = capacitated_coverage(&active, &demand, &caps, &contribution);
+            let want = brute_coverage(&active, &demand, &caps, &contribution);
+            prop_assert!((got - want).abs() < 1e-9, "b&b {got} != exhaustive {want}");
+        }
+
+        /// Activating another node can never reduce the achievable value.
+        #[test]
+        fn capacitated_coverage_is_monotone_in_the_active_set(
+            demand in proptest::collection::vec(0.1f64..2.0, 1..5),
+            caps in proptest::collection::vec(0.1f64..2.5, 2..4),
+            rates in proptest::collection::vec(0.0f64..2.0, 12..13),
+        ) {
+            let n_nodes = caps.len();
+            let contribution: Vec<Vec<f64>> = (0..n_nodes)
+                .map(|n| (0..demand.len()).map(|z| rates[(n * 4 + z) % rates.len()]).collect())
+                .collect();
+            let small: Vec<usize> = (0..n_nodes - 1).collect();
+            let large: Vec<usize> = (0..n_nodes).collect();
+            let a = capacitated_coverage(&small, &demand, &caps, &contribution);
+            let b = capacitated_coverage(&large, &demand, &caps, &contribution);
+            prop_assert!(b >= a - 1e-9, "adding a node lowered value: {a} -> {b}");
+        }
+
         /// Psi is a pooling *discount*: never worse than full pooling (1),
         /// never better than independence (sqrt n), and falls as rho rises.
         #[test]
